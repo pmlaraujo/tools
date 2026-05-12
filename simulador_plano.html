@@ -1,482 +1,581 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-PT">
 <head>
-<meta charset="UTF-8">
-<title>Simulador de Plano de Pagamentos</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <title>Simulador de Plano de Pagamentos</title>
 
-<style>
-* {
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
-}
-body {
-    margin: 0;
-    padding: 40px;
-    background: #f4f4f4;
-    font-size: 20px;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-}
-.container {
-    width: 100%;
-    max-width: 1200px;              /* voltou ao original */
-    background: white;
-    padding: 40px 80px;             /* laterais internos a dobrar */
-    border-radius: 20px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.15);
-    border: 6px solid #b8bcc9;
-}
-.title-box {
-    border-radius: 20px;
-    padding: 24px 30px;
-    margin-bottom: 30px;
-    color: #ffffff;
-    background: linear-gradient(90deg, rgb(0,122,130), #6a0dad);
-    border: 3px solid rgba(0,0,0,0.20);
-}
-.title-box h1 {
-    margin: 0;
-    font-size: 32px;
-}
-.row {
-    display: flex;
-    gap: 30px;
-    margin-bottom: 20px;
-}
-.field {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.field-nome { flex: 3; }
-.field-nif { flex: 1; }
-label {
-    font-size: 18px;
-    font-weight: bold;
-    color: #374151;
-}
-input, select {
-    width: 100%;
-    padding: 12px 14px;
-    font-size: 20px;
-    border-radius: 10px;
-    border: 2px solid #bfc3cf;
-}
-.buttons {
-    margin: 30px 0;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-button {
-    padding: 14px 26px;
-    font-size: 20px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-.btn-primary { background: rgb(0,122,130); color: white; }
-.btn-secondary { background: #e5e7eb; color: #111827; }
-.summary-block {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    padding: 18px 20px;
-    border-radius: 14px;
-    background: #f9fafb;
-    border: 2px solid #d1d5db;
-    font-size: 18px;
-    line-height: 1.6;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 18px;
-}
-th, td {
-    padding: 12px;
-    border-bottom: 2px solid #d1d5db;
-    text-align: right;
-    white-space: nowrap;
-}
-th:first-child, td:first-child { text-align: left; }
-thead { background: #eef0f4; }
-tbody tr:nth-child(even) { background: #f5f7fa; }
-tbody tr:hover { background: #e8ecff; }
-.editable-input {
-    width: 100%;
-    border-radius: 8px;
-    border: 2px solid #bfc3cf;
-    padding: 8px 10px;
-    font-size: 18px;
-    text-align: right;
-}
-</style>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Flatpickr (calendário com formato dd/mm/yyyy) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body {
+      margin: 0;
+      padding: 40px;
+      background: #f4f4f4;
+      font-size: 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background: white;
+      padding: 40px 80px;
+      border-radius: 20px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.15);
+      border: 6px solid #b8bcc9;
+    }
+    .title-box {
+      border-radius: 20px;
+      padding: 24px 30px;
+      margin-bottom: 30px;
+      color: #ffffff;
+      background: linear-gradient(90deg, rgb(0,122,130), #6a0dad);
+      border: 3px solid rgba(0,0,0,0.20);
+    }
+    .title-box h1 { margin: 0; font-size: 32px; }
+
+    .row { display: flex; gap: 30px; margin-bottom: 20px; align-items: flex-start; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .field-nome { flex: 3; }
+    .field-nif { flex: 1; }
+
+    label { font-size: 18px; font-weight: bold; color: #374151; }
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 20px;
+      border-radius: 10px;
+      border: 2px solid #bfc3cf;
+    }
+
+    .buttons { margin: 30px 0; display: flex; gap: 16px; flex-wrap: wrap; }
+    button {
+      padding: 14px 26px;
+      font-size: 20px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-primary { background: rgb(0,122,130); color: white; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+
+    .summary-block {
+      margin-top: 10px;
+      margin-bottom: 20px;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: #f9fafb;
+      border: 2px solid #d1d5db;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 2px solid #d1d5db;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    thead { background: #eef0f4; }
+    tbody tr:nth-child(even) { background: #f5f7fa; }
+    tbody tr:hover { background: #e8ecff; }
+
+    .editable-input {
+      width: 100%;
+      border-radius: 8px;
+      border: 2px solid #bfc3cf;
+      padding: 8px 10px;
+      font-size: 18px;
+      text-align: right;
+    }
+  </style>
 </head>
 
 <body>
 <div class="container">
 
-    <div class="title-box">
-        <h1>Simulador de Plano de Pagamentos</h1>
+  <div class="title-box">
+    <h1>Simulador de Plano de Pagamentos</h1>
+  </div>
+
+  <!-- Linha 1: Nome + NIF -->
+  <div class="row">
+    <div class="field field-nome">
+      <label>Nome do Cliente</label>
+      <input id="nomeCliente" type="text" />
+    </div>
+    <div class="field field-nif">
+      <label>NIF</label>
+      <input id="nifCliente" type="text" maxlength="9"
+             oninput="this.value=this.value.replace(/\D/g,'').slice(0,9);" />
+    </div>
+  </div>
+
+  <!-- Linha 2: Valor total + TAN + Data de incumprimento -->
+  <div class="row">
+    <div class="field">
+      <label>Valor total (€)</label>
+      <input id="valorTotal" type="number" step="0.01" />
+    </div>
+    <div class="field">
+      <label>TAN (%)</label>
+      <input id="taxaAnual" type="number" step="0.01" value="4" />
+    </div>
+    <div class="field">
+      <label>Data de incumprimento</label>
+      <!-- mantém calendário via flatpickr + formato dd/mm/yyyy -->
+      <input id="dataIncumprimento" type="text" placeholder="dd/mm/yyyy" />
+    </div>
+  </div>
+
+  <!-- Linha 3: Primeira prestação + restantes campos -->
+  <div class="row">
+    <div class="field">
+      <label>Primeira prestação</label>
+      <!-- mantém calendário via flatpickr + formato dd/mm/yyyy -->
+      <input id="primeiraData" type="text" placeholder="dd/mm/yyyy" />
     </div>
 
-    <!-- Linha 1: Nome + NIF -->
-    <div class="row">
-        <div class="field field-nome">
-            <label>Nome do Cliente</label>
-            <input id="nomeCliente" type="text">
-        </div>
-        <div class="field field-nif">
-            <label>NIF</label>
-            <input id="nifCliente" type="text" maxlength="9"
-                   oninput="this.value=this.value.replace(/\\D/g,'').slice(0,9);">
-        </div>
+    <div class="field">
+      <label>Tipo de cálculo</label>
+      <select id="tipoCalculo">
+        <option value="A">Por prazo (calcular prestação)</option>
+        <option value="A2">Prestação definida (prazo calculado)</option>
+      </select>
     </div>
 
-    <!-- Linha 2: Valor total + TAN + Primeira data -->
-    <div class="row">
-        <div class="field">
-            <label>Valor total (€)</label>
-            <input id="valorTotal" type="number" step="0.01">
-        </div>
-        <div class="field">
-            <label>TAN (%)</label>
-            <input id="taxaAnual" type="number" step="0.01" value="4">
-        </div>
-        <div class="field">
-            <label>Primeira data de vencimento</label>
-            <input id="primeiraData" type="date">
-        </div>
+    <div class="field" id="campoPrazo">
+      <label>N.º de prestações</label>
+      <input id="numPrestacoes" type="number" />
     </div>
 
-    <!-- Linha 3: Tipo cálculo + Nº prestações + Periodicidade -->
-    <div class="row">
-        <div class="field">
-            <label>Tipo de cálculo</label>
-            <select id="tipoCalculo">
-                <option value="A">Por prazo (calcular prestação)</option>
-                <option value="A2">Prestação definida (prazo calculado)</option>
-            </select>
-        </div>
-        <div class="field" id="campoPrazo">
-            <label>N.º de prestações</label>
-            <input id="numPrestacoes" type="number">
-        </div>
-        <div class="field" id="campoPrestacao" style="display:none;">
-            <label>Valor da prestação (€)</label>
-            <input id="valorPrestacao" type="number" step="0.01">
-        </div>
-        <div class="field">
-            <label>Periodicidade</label>
-            <select id="periodicidade">
-                <option value="1">Mensal</option>
-                <option value="3">Trimestral</option>
-                <option value="6">Semestral</option>
-                <option value="12">Anual</option>
-            </select>
-        </div>
+    <div class="field" id="campoPrestacao" style="display:none;">
+      <label>Valor da prestação (€)</label>
+      <input id="valorPrestacao" type="number" step="0.01" />
     </div>
 
-    <div class="buttons">
-        <button class="btn-primary" id="btnCalcular">Calcular</button>
-        <button class="btn-secondary" id="btnLimpar">Limpar</button>
-        <button class="btn-secondary" id="btnPDF">Exportar PDF</button>
+    <div class="field">
+      <label>Periodicidade</label>
+      <select id="periodicidade">
+        <option value="1">Mensal</option>
+        <option value="3">Trimestral</option>
+        <option value="6">Semestral</option>
+        <option value="12">Anual</option>
+      </select>
     </div>
+  </div>
 
-    <div id="resumoCabecalho" class="summary-block" style="display:none;"></div>
+  <div class="buttons">
+    <button class="btn-primary" id="btnCalcular">Calcular</button>
+    <button class="btn-secondary" id="btnLimpar">Limpar</button>
+    <button class="btn-secondary" id="btnPDF">Exportar PDF</button>
+  </div>
 
-    <table id="tabela" style="display:none;">
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>Data</th>
-            <th>Prestação (€)</th>
-            <th>Juros (€)</th>
-            <th>I.S. (4%) (€)</th>
-            <th>Amortização (€)</th>
-            <th>Saldo (€)</th>
-        </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-    </table>
+  <div id="resumoCabecalho" class="summary-block" style="display:none;"></div>
+
+  <table id="tabela" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Data</th>
+        <th>Prestação (€)</th>
+        <th>Juros (€)</th>
+        <th>I.S. (4%) (€)</th>
+        <th>Amortização (€)</th>
+        <th>Saldo (€)</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
 
 </div>
 
 <script>
-function formatMoney(v) {
-    return v.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function roundUp2(v) {
-    return Math.ceil(v * 100) / 100;
-}
-function formatDate(d) {
-    return d.toLocaleDateString('pt-PT');
-}
+  // ---------- Datas PT ----------
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function formatDatePT(d){ return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`; }
 
-function calcularPMTComIS(PV, n, taxaAnual, mesesPeriodo) {
+  function parseDataPT(str) {
+    if (!str || !/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return null;
+    const [dd, mm, yyyy] = str.split('/').map(Number);
+    const dt = new Date(yyyy, mm - 1, dd);
+    if (dt.getFullYear() !== yyyy || dt.getMonth() !== (mm - 1) || dt.getDate() !== dd) return null;
+    return dt;
+  }
+
+  // ---------- Valores ----------
+  function formatMoney(v) {
+    return v.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function roundUp2(v) { return Math.ceil(v * 100) / 100; }
+
+  // ---------- Juros pró-rata (ACT/365) ----------
+  function diasEntreDatasUTC(d1, d2) {
+    const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+    const msDia = 1000 * 60 * 60 * 24;
+    return Math.max(0, Math.floor((utc2 - utc1) / msDia));
+  }
+  function jurosProRataACT365(saldo, taxaAnual, dataInicio, dataFim) {
+    const dias = diasEntreDatasUTC(dataInicio, dataFim);
+    const juros = saldo * (taxaAnual / 100) * (dias / 365);
+    const imposto = juros * 0.04;
+    return { dias, juros, imposto };
+  }
+
+  // ---------- PMT (1.º período pode ser por dias; sem capitalizar saldo) ----------
+  function calcularPMTComIS(PV, n, taxaAnual, mesesPeriodo, dataInc, primeiraData) {
     const i = (taxaAnual / 100) * (mesesPeriodo / 12);
-    let baixo = PV / n;
-    let alto = PV;
+    let baixo = 0.01;
+    let alto = PV * 2;
     let PMT = 0;
-    for (let iter = 0; iter < 50; iter++) {
-        PMT = (baixo + alto) / 2;
-        let saldo = PV;
-        for (let k = 0; k < n; k++) {
-            const juros = saldo * i;
-            const imposto = juros * 0.04;
-            const amort = PMT - juros - imposto;
-            saldo -= amort;
+
+    for (let iter = 0; iter < 60; iter++) {
+      PMT = (baixo + alto) / 2;
+      let saldo = PV;
+
+      for (let k = 0; k < n; k++) {
+        let juros;
+        if (k === 0 && dataInc && dataInc < primeiraData) {
+          juros = jurosProRataACT365(saldo, taxaAnual, dataInc, primeiraData).juros;
+        } else {
+          juros = saldo * i;
         }
-        if (saldo > 0) baixo = PMT; else alto = PMT;
+        const imposto = juros * 0.04;
+        const amort = PMT - juros - imposto;
+        saldo -= amort;
+      }
+      if (saldo > 0) baixo = PMT; else alto = PMT;
     }
     return PMT;
-}
+  }
 
-function gerarPlano(PV, PMT, taxaAnual, primeiraData, mesesPeriodo, nMax = null) {
+  function gerarPlano(PV, PMT, taxaAnual, primeiraData, mesesPeriodo, nMax = null, dataInc = null) {
     const i = (taxaAnual / 100) * (mesesPeriodo / 12);
     let saldo = PV;
     const linhas = [];
     let k = 0;
+
     while (saldo > 0.01 && (nMax === null || k < nMax)) {
-        const dataVenc = new Date(primeiraData);
-        dataVenc.setMonth(dataVenc.getMonth() + k * mesesPeriodo);
-        const juros = saldo * i;
-        const impostoSelo = juros * 0.04;
-        let prestacao = PMT;
-        let amortizacao = prestacao - juros - impostoSelo;
-        if (amortizacao > saldo) {
-            amortizacao = saldo;
-            prestacao = juros + impostoSelo + amortizacao;
-        }
-        saldo -= amortizacao;
-        linhas.push({
-            parcela: k + 1,
-            data: dataVenc,
-            prestacao,
-            juros,
-            impostoSelo,
-            amortizacao,
-            saldoDepois: saldo
-        });
-        k++;
+      const dataVenc = new Date(primeiraData);
+      dataVenc.setMonth(dataVenc.getMonth() + k * mesesPeriodo);
+
+      let juros;
+      if (k === 0 && dataInc && dataInc < dataVenc) {
+        juros = jurosProRataACT365(saldo, taxaAnual, dataInc, dataVenc).juros;
+      } else {
+        juros = saldo * i;
+      }
+
+      const impostoSelo = juros * 0.04;
+      let prestacao = PMT;
+      let amortizacao = prestacao - juros - impostoSelo;
+
+      if (amortizacao > saldo) {
+        amortizacao = saldo;
+        prestacao = juros + impostoSelo + amortizacao;
+      }
+
+      saldo -= amortizacao;
+
+      linhas.push({
+        parcela: k + 1,
+        data: dataVenc,
+        prestacao,
+        juros,
+        impostoSelo,
+        amortizacao,
+        saldoDepois: saldo
+      });
+
+      k++;
     }
     return linhas;
-}
+  }
 
-const tipoCalculoEl = document.getElementById('tipoCalculo');
-const campoPrazo = document.getElementById('campoPrazo');
-const campoPrestacao = document.getElementById('campoPrestacao');
-const periodicidadeEl = document.getElementById('periodicidade');
+  // ---------- Elementos ----------
+  const tipoCalculoEl = document.getElementById('tipoCalculo');
+  const campoPrazo = document.getElementById('campoPrazo');
+  const campoPrestacao = document.getElementById('campoPrestacao');
+  const periodicidadeEl = document.getElementById('periodicidade');
 
-const tbody = document.getElementById('tbody');
-const tabela = document.getElementById('tabela');
-const resumoCabecalho = document.getElementById('resumoCabecalho');
+  const tbody = document.getElementById('tbody');
+  const tabela = document.getElementById('tabela');
+  const resumoCabecalho = document.getElementById('resumoCabecalho');
 
-const nomeInput = document.getElementById('nomeCliente');
-const nifInput = document.getElementById('nifCliente');
-const valorTotalInput = document.getElementById('valorTotal');
-const taxaInput = document.getElementById('taxaAnual');
-const primeiraDataInput = document.getElementById('primeiraData');
-const numPrestInput = document.getElementById('numPrestacoes');
-const valorPrestInput = document.getElementById('valorPrestacao');
+  const nomeInput = document.getElementById('nomeCliente');
+  const nifInput = document.getElementById('nifCliente');
+  const valorTotalInput = document.getElementById('valorTotal');
+  const taxaInput = document.getElementById('taxaAnual');
+  const dataIncInput = document.getElementById('dataIncumprimento');
+  const primeiraDataInput = document.getElementById('primeiraData');
+  const numPrestInput = document.getElementById('numPrestacoes');
+  const valorPrestInput = document.getElementById('valorPrestacao');
 
-const btnCalcular = document.getElementById('btnCalcular');
-const btnLimpar = document.getElementById('btnLimpar');
-const btnPDF = document.getElementById('btnPDF');
+  const btnCalcular = document.getElementById('btnCalcular');
+  const btnLimpar = document.getElementById('btnLimpar');
+  const btnPDF = document.getElementById('btnPDF');
 
-let planoAtual = [];
-let PVAtual = 0;
-let taxaAtual = 0;
-let primeiraDataAtual = null;
-let mesesPeriodoAtual = 1;
+  // ---------- Estado ----------
+  let planoAtual = [];
+  let PVAtual = 0;
+  let taxaAtual = 0;
+  let primeiraDataAtual = null;
+  let mesesPeriodoAtual = 1;
+  let dataIncAtual = null;
 
-tipoCalculoEl.addEventListener('change', () => {
+  tipoCalculoEl.addEventListener('change', () => {
     campoPrazo.style.display = tipoCalculoEl.value === 'A' ? '' : 'none';
     campoPrestacao.style.display = tipoCalculoEl.value === 'A2' ? '' : 'none';
-});
+  });
 
-function atualizarResumo(nome, nif, PV, taxa, primeiraDataStr, tipo, n, PMT) {
-    const primeiraFmt = primeiraDataStr ? formatDate(new Date(primeiraDataStr)) : '-';
+  function textoPeriodicidade(meses) {
+    return meses === 1 ? 'Mensal' : meses === 3 ? 'Trimestral' : meses === 6 ? 'Semestral' : 'Anual';
+  }
+
+  function atualizarResumo(nome, nif, PV, taxa, dataIncStr, primeiraDataStr, tipo, n) {
+    const dInc = parseDataPT(dataIncStr);
+    const d1 = parseDataPT(primeiraDataStr);
+
+    const incFmt = dInc ? formatDatePT(dInc) : '-';
+    const primeiraFmt = d1 ? formatDatePT(d1) : '-';
+
+    let extra = '';
+    if (dInc && d1 && dInc < d1) {
+      const calc = jurosProRataACT365(PV, taxa, dInc, d1);
+      extra = `<br><b>Juros até 1.ª prestação:</b> ${calc.dias} dias &nbsp; ` +
+              `<b>Juros:</b> ${formatMoney(calc.juros)} € &nbsp; ` +
+              `<b>I.S.:</b> ${formatMoney(calc.imposto)} €`;
+    }
+
     resumoCabecalho.innerHTML =
-        `<b>Cliente:</b> ${nome || '-'} &nbsp;&nbsp; <b>NIF:</b> ${nif || '-'}<br>` +
-        `<b>Valor total:</b> ${formatMoney(PV)} € &nbsp;&nbsp; <b>TAN:</b> ${taxa}% &nbsp;&nbsp; <b>1.ª data vencimento:</b> ${primeiraFmt}<br>` +
-        `<b>Tipo de cálculo:</b> ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'} &nbsp;&nbsp; ` +
-        `<b>N.º prestações:</b> ${n} &nbsp;&nbsp; ` +
-        `<b>Periodicidade:</b> ${mesesPeriodoAtual === 1 ? 'Mensal' : mesesPeriodoAtual === 3 ? 'Trimestral' : mesesPeriodoAtual === 6 ? 'Semestral' : 'Anual'}`;
-    resumoCabecalho.style.display = 'block';
-}
+      `<b>Cliente:</b> ${nome || '-'} &nbsp;&nbsp; <b>NIF:</b> ${nif || '-'}<br>` +
+      `<b>Valor total:</b> ${formatMoney(PV)} € &nbsp;&nbsp; <b>TAN:</b> ${taxa}%<br>` +
+      `<b>Data de incumprimento:</b> ${incFmt} &nbsp;&nbsp; <b>Primeira prestação:</b> ${primeiraFmt}<br>` +
+      `<b>Tipo de cálculo:</b> ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'} &nbsp;&nbsp; ` +
+      `<b>N.º prestações:</b> ${n} &nbsp;&nbsp; ` +
+      `<b>Periodicidade:</b> ${textoPeriodicidade(mesesPeriodoAtual)}` +
+      extra;
 
-function preencherTabela(plano) {
+    resumoCabecalho.style.display = 'block';
+  }
+
+  function preencherTabela(plano) {
     tbody.innerHTML = '';
     plano.forEach((l) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${l.parcela}</td>
-            <td>${formatDate(l.data)}</td>
-            <td><input class="editable-input" type="number" step="0.01"
-                value="${l.prestacao.toFixed(2)}"
-                onchange="editarPrestacao(this.value, ${l.parcela})"></td>
-            <td>${formatMoney(l.juros)}</td>
-            <td>${formatMoney(l.impostoSelo)}</td>
-            <td>${formatMoney(l.amortizacao)}</td>
-            <td>${formatMoney(l.saldoDepois)}</td>
-        `;
-        tbody.appendChild(tr);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${l.parcela}</td>
+        <td>${formatDatePT(l.data)}</td>
+        <td><input class="editable-input" type="number" step="0.01"
+          value="${l.prestacao.toFixed(2)}"
+          onchange="editarPrestacao(this.value, ${l.parcela})"></td>
+        <td>${formatMoney(l.juros)}</td>
+        <td>${formatMoney(l.impostoSelo)}</td>
+        <td>${formatMoney(l.amortizacao)}</td>
+        <td>${formatMoney(l.saldoDepois)}</td>
+      `;
+      tbody.appendChild(tr);
     });
     tabela.style.display = plano.length ? 'table' : 'none';
-}
+  }
 
-function calcular() {
+  function calcular() {
     const nome = nomeInput.value;
     const nif = nifInput.value;
     const PV = Number(valorTotalInput.value);
     const taxa = Number(taxaInput.value);
-    const primeiraDataStr = primeiraDataInput.value;
+
+    const dataIncStr = (dataIncInput.value || '').trim();
+    const primeiraDataStr = (primeiraDataInput.value || '').trim();
     const mesesPeriodo = Number(periodicidadeEl.value);
+
     if (!PV || !taxa || !primeiraDataStr) {
-        alert('Preenche valor total, TAN e datas.');
-        return;
+      alert('Preenche valor total, TAN e a data da primeira prestação.');
+      return;
     }
-    const primeiraData = new Date(primeiraDataStr);
+
+    const primeiraData = parseDataPT(primeiraDataStr);
+    if (!primeiraData) {
+      alert('Data da primeira prestação inválida. Usa dd/mm/yyyy.');
+      return;
+    }
+
+    let dataInc = null;
+    if (dataIncStr) {
+      dataInc = parseDataPT(dataIncStr);
+      if (!dataInc) {
+        alert('Data de incumprimento inválida. Usa dd/mm/yyyy.');
+        return;
+      }
+      if (dataInc > primeiraData) {
+        alert('A data de incumprimento não pode ser posterior à data da primeira prestação.');
+        return;
+      }
+    }
+
     let PMT, n;
     const tipo = tipoCalculoEl.value;
+
     if (tipo === 'A') {
-        n = Number(numPrestInput.value);
-        if (!n || n <= 0) {
-            alert('Indica o número de prestações.');
-            return;
-        }
-        PMT = roundUp2(calcularPMTComIS(PV, n, taxa, mesesPeriodo));
-        planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, n);
+      n = Number(numPrestInput.value);
+      if (!n || n <= 0) {
+        alert('Indica o número de prestações.');
+        return;
+      }
+      PMT = roundUp2(calcularPMTComIS(PV, n, taxa, mesesPeriodo, dataInc, primeiraData));
+      planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, n, dataInc);
     } else {
-        PMT = Number(valorPrestInput.value);
-        if (!PMT || PMT <= 0) {
-            alert('Indica o valor da prestação.');
-            return;
-        }
-        planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, null);
-        n = planoAtual.length;
+      PMT = Number(valorPrestInput.value);
+      if (!PMT || PMT <= 0) {
+        alert('Indica o valor da prestação.');
+        return;
+      }
+      planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, null, dataInc);
+      n = planoAtual.length;
     }
-    PVAtual = PV;
+
+    PVAtual = PV; // sem capitalizar
     taxaAtual = taxa;
     primeiraDataAtual = primeiraData;
     mesesPeriodoAtual = mesesPeriodo;
-    atualizarResumo(nome, nif, PV, taxa, primeiraDataStr, tipo, n, PMT);
-    preencherTabela(planoAtual);
-}
+    dataIncAtual = dataInc;
 
-function editarPrestacao(novoValor, parcelaEditada) {
+    atualizarResumo(nome, nif, PV, taxa, dataIncStr, primeiraDataStr, tipo, n);
+    preencherTabela(planoAtual);
+  }
+
+  // onchange inline
+  window.editarPrestacao = function(novoValor, parcelaEditada) {
     novoValor = Number(novoValor);
-    if (novoValor <= 0) {
-        alert('Prestação inválida.');
-        return;
-    }
+    if (novoValor <= 0) { alert('Prestação inválida.'); return; }
 
     const i = (taxaAtual / 100) * (mesesPeriodoAtual / 12);
     let saldo = PVAtual;
     const novoPlano = [];
 
-    // Recalcular prestações anteriores
+    // anteriores
     for (let idx = 0; idx < parcelaEditada - 1; idx++) {
-        const antiga = planoAtual[idx];
-        const juros = saldo * i;
-        const impostoSelo = juros * 0.04;
-        const amortizacao = antiga.prestacao - juros - impostoSelo;
-        saldo -= amortizacao;
+      const antiga = planoAtual[idx];
 
-        novoPlano.push({
-            parcela: idx + 1,
-            data: antiga.data,
-            prestacao: antiga.prestacao,
-            juros,
-            impostoSelo,
-            amortizacao,
-            saldoDepois: saldo
-        });
+      let juros;
+      if (idx === 0 && dataIncAtual && dataIncAtual < antiga.data) {
+        juros = jurosProRataACT365(saldo, taxaAtual, dataIncAtual, antiga.data).juros;
+      } else {
+        juros = saldo * i;
+      }
+
+      const impostoSelo = juros * 0.04;
+      const amortizacao = antiga.prestacao - juros - impostoSelo;
+      saldo -= amortizacao;
+
+      novoPlano.push({
+        parcela: idx + 1,
+        data: antiga.data,
+        prestacao: antiga.prestacao,
+        juros,
+        impostoSelo,
+        amortizacao,
+        saldoDepois: saldo
+      });
     }
 
-    // Prestação editada
+    // editada
     const dataAlterada = new Date(primeiraDataAtual);
     dataAlterada.setMonth(dataAlterada.getMonth() + (parcelaEditada - 1) * mesesPeriodoAtual);
 
-    const jurosAlt = saldo * i;
+    let jurosAlt;
+    if (parcelaEditada === 1 && dataIncAtual && dataIncAtual < dataAlterada) {
+      jurosAlt = jurosProRataACT365(saldo, taxaAtual, dataIncAtual, dataAlterada).juros;
+    } else {
+      jurosAlt = saldo * i;
+    }
+
     const impostoSeloAlt = jurosAlt * 0.04;
     let amortAlt = novoValor - jurosAlt - impostoSeloAlt;
 
     if (amortAlt > saldo) {
-        alert("O valor introduzido é superior ao saldo em dívida.");
-        preencherTabela(planoAtual);
-        return;
+      alert("O valor introduzido é superior ao saldo em dívida.");
+      preencherTabela(planoAtual);
+      return;
     }
 
     saldo -= amortAlt;
 
     novoPlano.push({
-        parcela: parcelaEditada,
-        data: dataAlterada,
-        prestacao: novoValor,
-        juros: jurosAlt,
-        impostoSelo: impostoSeloAlt,
-        amortizacao: amortAlt,
-        saldoDepois: saldo
+      parcela: parcelaEditada,
+      data: dataAlterada,
+      prestacao: novoValor,
+      juros: jurosAlt,
+      impostoSelo: impostoSeloAlt,
+      amortizacao: amortAlt,
+      saldoDepois: saldo
     });
 
-    // Recalcular restantes prestações
+    // restantes
     let k = parcelaEditada;
     while (saldo > 0.01 && k < parcelaEditada + 240) {
-        k++;
-        const dataVenc = new Date(primeiraDataAtual);
-        dataVenc.setMonth(dataVenc.getMonth() + (k - 1) * mesesPeriodoAtual);
+      k++;
+      const dataVenc = new Date(primeiraDataAtual);
+      dataVenc.setMonth(dataVenc.getMonth() + (k - 1) * mesesPeriodoAtual);
 
-        const juros = saldo * i;
-        const impostoSelo = juros * 0.04;
-        let prestacao = novoValor;
-        let amortizacao = prestacao - juros - impostoSelo;
+      const juros = saldo * i;
+      const impostoSelo = juros * 0.04;
+      let prestacao = novoValor;
+      let amortizacao = prestacao - juros - impostoSelo;
 
-        if (amortizacao > saldo) {
-            amortizacao = saldo;
-            prestacao = juros + impostoSelo + amortizacao;
-        }
+      if (amortizacao > saldo) {
+        amortizacao = saldo;
+        prestacao = juros + impostoSelo + amortizacao;
+      }
 
-        saldo -= amortizacao;
+      saldo -= amortizacao;
 
-        novoPlano.push({
-            parcela: k,
-            data: dataVenc,
-            prestacao,
-            juros,
-            impostoSelo,
-            amortizacao,
-            saldoDepois: saldo
-        });
+      novoPlano.push({
+        parcela: k,
+        data: dataVenc,
+        prestacao,
+        juros,
+        impostoSelo,
+        amortizacao,
+        saldoDepois: saldo
+      });
     }
 
     planoAtual = novoPlano;
     preencherTabela(planoAtual);
 
-    // 🔥 Atualizar resumo com o novo número de prestações
     atualizarResumo(
-        nomeInput.value,
-        nifInput.value,
-        PVAtual,
-        taxaAtual,
-        primeiraDataInput.value,
-        tipoCalculoEl.value,
-        planoAtual.length,
-        planoAtual[0].prestacao
+      nomeInput.value, nifInput.value, PVAtual, taxaAtual,
+      (dataIncInput.value || '').trim(),
+      (primeiraDataInput.value || '').trim(),
+      tipoCalculoEl.value, planoAtual.length
     );
-}
-function limpar() {
+  }
+
+  function limpar() {
     nomeInput.value = '';
     nifInput.value = '';
     valorTotalInput.value = '';
     taxaInput.value = '4';
+    dataIncInput.value = '';
     primeiraDataInput.value = '';
     numPrestInput.value = '';
     valorPrestInput.value = '';
@@ -491,24 +590,35 @@ function limpar() {
     taxaAtual = 0;
     primeiraDataAtual = null;
     mesesPeriodoAtual = 1;
-}
+    dataIncAtual = null;
+  }
 
-btnCalcular.addEventListener('click', calcular);
-btnLimpar.addEventListener('click', limpar);
+  btnCalcular.addEventListener('click', calcular);
+  btnLimpar.addEventListener('click', limpar);
+
+  // ---------- Flatpickr init (calendário + dd/mm/yyyy) ----------
+  function initCalendarioPT(selector) {
+    flatpickr(selector, {
+      locale: flatpickr.l10ns.pt,
+      dateFormat: "d/m/Y",
+      allowInput: true,
+      // opcional: fecha ao selecionar
+      // clickOpens: true
+    });
+  }
+
+  initCalendarioPT("#dataIncumprimento");
+  initCalendarioPT("#primeiraData");
 </script>
 
 <script>
-btnPDF.addEventListener('click', () => {
-    if (!planoAtual.length) {
-        alert('Nada para exportar.');
-        return;
-    }
+  // ---------- PDF ----------
+  btnPDF.addEventListener('click', () => {
+    if (!planoAtual.length) { alert('Nada para exportar.'); return; }
+
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'pt',
-        format: 'a4'
-    });
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 40;
@@ -519,20 +629,21 @@ btnPDF.addEventListener('click', () => {
     const nif = nifInput.value || "-";
     const PV = formatMoney(Number(valorTotalInput.value) || 0);
     const taxa = taxaInput.value || "-";
-    const primeiraDataStr = primeiraDataInput.value
-        ? formatDate(new Date(primeiraDataInput.value))
-        : "-";
+
+    const dataIncStr = dataIncInput.value ? dataIncInput.value : "-";
+    const primeiraDataStr = primeiraDataInput.value ? primeiraDataInput.value : "-";
+
     const tipo = tipoCalculoEl.value;
     const n = planoAtual.length;
-    const PMT = formatMoney(planoAtual[0].prestacao);
+
     const periodicidadeTxt =
-        mesesPeriodoAtual === 1 ? 'Mensal' :
-        mesesPeriodoAtual === 3 ? 'Trimestral' :
-        mesesPeriodoAtual === 6 ? 'Semestral' : 'Anual';
+      mesesPeriodoAtual === 1 ? 'Mensal' :
+      mesesPeriodoAtual === 3 ? 'Trimestral' :
+      mesesPeriodoAtual === 6 ? 'Semestral' : 'Anual';
 
     pdf.setFillColor(245, 245, 245);
     pdf.setDrawColor(180, 180, 180);
-    pdf.roundedRect(margin, 40, pageWidth - margin * 2, 130, 6, 6, "FD");
+    pdf.roundedRect(margin, 40, pageWidth - margin * 2, 150, 6, 6, "FD");
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
@@ -542,74 +653,81 @@ btnPDF.addEventListener('click', () => {
     pdf.setFontSize(12);
     pdf.text(`Cliente: ${nome}`, margin + 10, 90);
     pdf.text(`NIF: ${nif}`, margin + 300, 90);
+
     pdf.text(`Valor total: ${PV} €`, margin + 10, 110);
     pdf.text(`TAN: ${taxa}%`, margin + 300, 110);
-    pdf.text(`1.ª data vencimento: ${primeiraDataStr}`, margin + 10, 130);
+
+    pdf.text(`Data incumprimento: ${dataIncStr}`, margin + 10, 130);
+    pdf.text(`Primeira prestação: ${primeiraDataStr}`, margin + 300, 130);
+
     pdf.text(`Tipo cálculo: ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'}`, margin + 10, 150);
     pdf.text(`N.º prestações: ${n}`, margin + 300, 150);
     pdf.text(`Periodicidade: ${periodicidadeTxt}`, margin + 500, 150);
 
-    y = 190;
+    y = 210;
 
     function desenharCabecalhoTabela() {
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.text("Plano Financeiro", margin, y);
-        y += 20;
-        pdf.setFontSize(11);
-        const headers = [
-            { label: "#", x: margin },
-            { label: "Data", x: margin + 40 },
-            { label: "Prestação (€)", x: margin + 140 },
-            { label: "Juros (€)", x: margin + 260 },
-            { label: "I.S. (4%) (€)", x: margin + 360 },
-            { label: "Amortização (€)", x: margin + 480 },
-            { label: "Saldo (€)", x: margin + 620 }
-        ];
-        headers.forEach(h => pdf.text(h.label, h.x, y));
-        pdf.setLineWidth(1);
-        pdf.line(margin, y + 5, pageWidth - margin, y + 5);
-        y += 25;
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("Plano Financeiro", margin, y);
+      y += 20;
+
+      pdf.setFontSize(11);
+      const headers = [
+        { label: "#", x: margin },
+        { label: "Data", x: margin + 40 },
+        { label: "Prestação (€)", x: margin + 140 },
+        { label: "Juros (€)", x: margin + 260 },
+        { label: "I.S. (4%) (€)", x: margin + 360 },
+        { label: "Amortização (€)", x: margin + 480 },
+        { label: "Saldo (€)", x: margin + 620 }
+      ];
+      headers.forEach(h => pdf.text(h.label, h.x, y));
+      pdf.setLineWidth(1);
+      pdf.line(margin, y + 5, pageWidth - margin, y + 5);
+      y += 25;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
     }
 
     function desenharPaginacao() {
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "normal");
-        pdf.text(`Pág. ${page}`, pageWidth - margin - 40, pageHeight - 20);
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Pág. ${page}`, pageWidth - margin - 40, pageHeight - 20);
     }
 
     function desenharLinha(l) {
-        const col = [
-            { text: String(l.parcela), x: margin },
-            { text: formatDate(l.data), x: margin + 40 },
-            { text: formatMoney(l.prestacao), x: margin + 140 },
-            { text: formatMoney(l.juros), x: margin + 260 },
-            { text: formatMoney(l.impostoSelo), x: margin + 360 },
-            { text: formatMoney(l.amortizacao), x: margin + 480 },
-            { text: formatMoney(l.saldoDepois), x: margin + 620 }
-        ];
-        col.forEach(c => pdf.text(c.text, c.x, y));
-        pdf.setLineWidth(0.5);
-        pdf.line(margin, y + 5, pageWidth - margin, y + 5);
-        y += 25;
+      const col = [
+        { text: String(l.parcela), x: margin },
+        { text: formatDatePT(l.data), x: margin + 40 },
+        { text: formatMoney(l.prestacao), x: margin + 140 },
+        { text: formatMoney(l.juros), x: margin + 260 },
+        { text: formatMoney(l.impostoSelo), x: margin + 360 },
+        { text: formatMoney(l.amortizacao), x: margin + 480 },
+        { text: formatMoney(l.saldoDepois), x: margin + 620 }
+      ];
+      col.forEach(c => pdf.text(c.text, c.x, y));
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y + 5, pageWidth - margin, y + 5);
+      y += 25;
     }
 
     desenharCabecalhoTabela();
     planoAtual.forEach((l) => {
-        if (y > pageHeight - 60) {
-            desenharPaginacao();
-            pdf.addPage();
-            page++;
-            y = 40;
-            desenharCabecalhoTabela();
-        }
-        desenharLinha(l);
+      if (y > pageHeight - 60) {
+        desenharPaginacao();
+        pdf.addPage();
+        page++;
+        y = 40;
+        desenharCabecalhoTabela();
+      }
+      desenharLinha(l);
     });
+
     desenharPaginacao();
     pdf.save("plano_pagamentos.pdf");
-});
+  });
 </script>
 
 </body>
