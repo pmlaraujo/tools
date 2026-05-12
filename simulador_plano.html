@@ -226,16 +226,16 @@
   }
   function roundUp2(v) { return Math.ceil(v * 100) / 100; }
 
-  // ---------- Juros pró-rata (ACT/365) ----------
+  // ---------- Juros pró-rata (ACT/360) ----------
   function diasEntreDatasUTC(d1, d2) {
     const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
     const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
     const msDia = 1000 * 60 * 60 * 24;
     return Math.max(0, Math.floor((utc2 - utc1) / msDia));
   }
-  function jurosProRataACT365(saldo, taxaAnual, dataInicio, dataFim) {
+  function jurosProRataACT360(saldo, taxaAnual, dataInicio, dataFim) {
     const dias = diasEntreDatasUTC(dataInicio, dataFim);
-    const juros = saldo * (taxaAnual / 100) * (dias / 365);
+    const juros = saldo * (taxaAnual / 100) * (dias / 360);
     const imposto = juros * 0.04;
     return { dias, juros, imposto };
   }
@@ -254,7 +254,7 @@
       for (let k = 0; k < n; k++) {
         let juros;
         if (k === 0 && dataInc && dataInc < primeiraData) {
-          juros = jurosProRataACT365(saldo, taxaAnual, dataInc, primeiraData).juros;
+          juros = jurosProRataACT360(saldo, taxaAnual, dataInc, primeiraData).juros;
         } else {
           juros = saldo * i;
         }
@@ -279,7 +279,7 @@
 
       let juros;
       if (k === 0 && dataInc && dataInc < dataVenc) {
-        juros = jurosProRataACT365(saldo, taxaAnual, dataInc, dataVenc).juros;
+        juros = jurosProRataACT360(saldo, taxaAnual, dataInc, dataVenc).juros;
       } else {
         juros = saldo * i;
       }
@@ -359,7 +359,7 @@
 
     let extra = '';
     if (dInc && d1 && dInc < d1) {
-      const calc = jurosProRataACT365(PV, taxa, dInc, d1);
+      const calc = jurosProRataACT360(PV, taxa, dInc, d1);
       extra = `<br><b>Juros até 1.ª prestação:</b> ${calc.dias} dias &nbsp; ` +
               `<b>Juros:</b> ${formatMoney(calc.juros)} € &nbsp; ` +
               `<b>I.S.:</b> ${formatMoney(calc.imposto)} €`;
@@ -477,7 +477,7 @@
 
       let juros;
       if (idx === 0 && dataIncAtual && dataIncAtual < antiga.data) {
-        juros = jurosProRataACT365(saldo, taxaAtual, dataIncAtual, antiga.data).juros;
+        juros = jurosProRataACT360(saldo, taxaAtual, dataIncAtual, antiga.data).juros;
       } else {
         juros = saldo * i;
       }
@@ -503,7 +503,7 @@
 
     let jurosAlt;
     if (parcelaEditada === 1 && dataIncAtual && dataIncAtual < dataAlterada) {
-      jurosAlt = jurosProRataACT365(saldo, taxaAtual, dataIncAtual, dataAlterada).juros;
+      jurosAlt = jurosProRataACT360(saldo, taxaAtual, dataIncAtual, dataAlterada).juros;
     } else {
       jurosAlt = saldo * i;
     }
@@ -732,4 +732,3 @@
 
 </body>
 </html>
-<!-- force deploy 2026-05-12 -->
