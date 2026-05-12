@@ -7,7 +7,7 @@
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Flatpickr (calendário com formato dd/mm/yyyy) -->
+  <!-- Flatpickr -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
@@ -43,10 +43,10 @@
     }
     .title-box h1 { margin: 0; font-size: 32px; }
 
-    .row { display: flex; gap: 30px; margin-bottom: 20px; align-items: flex-start; }
-    .field { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-    .field-nome { flex: 3; }
-    .field-nif { flex: 1; }
+    .row { display: flex; gap: 30px; margin-bottom: 20px; align-items: flex-start; flex-wrap: wrap; }
+    .field { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+    .field-nome { flex: 3; min-width: 320px; }
+    .field-nif { flex: 1; min-width: 200px; }
 
     label { font-size: 18px; font-weight: bold; color: #374151; }
     input, select {
@@ -84,10 +84,10 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
-      font-size: 18px;
+      font-size: 16px;
     }
     th, td {
-      padding: 12px;
+      padding: 10px;
       border-bottom: 2px solid #d1d5db;
       text-align: right;
       white-space: nowrap;
@@ -102,7 +102,7 @@
       border-radius: 8px;
       border: 2px solid #bfc3cf;
       padding: 8px 10px;
-      font-size: 18px;
+      font-size: 16px;
       text-align: right;
     }
   </style>
@@ -128,11 +128,15 @@
     </div>
   </div>
 
-  <!-- Linha 2: Valor total + TAN + Data de incumprimento -->
+  <!-- Linha 2: Capital + Juros&Despesas + TAN + Data de incumprimento -->
   <div class="row">
     <div class="field">
-      <label>Valor total (€)</label>
-      <input id="valorTotal" type="number" step="0.01" />
+      <label>Capital (€)</label>
+      <input id="capital" type="number" step="0.01" />
+    </div>
+    <div class="field">
+      <label>Juros &amp; Despesas (€)</label>
+      <input id="jurosDespesas" type="number" step="0.01" value="0" />
     </div>
     <div class="field">
       <label>TAN (%)</label>
@@ -140,7 +144,6 @@
     </div>
     <div class="field">
       <label>Data de incumprimento</label>
-      <!-- mantém calendário via flatpickr + formato dd/mm/yyyy -->
       <input id="dataIncumprimento" type="text" placeholder="dd/mm/yyyy" />
     </div>
   </div>
@@ -149,7 +152,6 @@
   <div class="row">
     <div class="field">
       <label>Primeira prestação</label>
-      <!-- mantém calendário via flatpickr + formato dd/mm/yyyy -->
       <input id="primeiraData" type="text" placeholder="dd/mm/yyyy" />
     </div>
 
@@ -196,10 +198,12 @@
         <th>#</th>
         <th>Data</th>
         <th>Prestação (€)</th>
+        <th>Amort. J&amp;D (€)</th>
         <th>Juros (€)</th>
-        <th>I.S. (4%) (€)</th>
-        <th>Amortização (€)</th>
-        <th>Saldo (€)</th>
+        <th>I.S. (€)</th>
+        <th>Capital (€)</th>
+        <th>Saldo Capital (€)</th>
+        <th>Saldo J&amp;D (€)</th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -208,7 +212,9 @@
 </div>
 
 <script>
-  // ---------- Datas PT ----------
+  // ============================================================
+  // Datas PT
+  // ============================================================
   function pad2(n){ return String(n).padStart(2,'0'); }
   function formatDatePT(d){ return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`; }
 
@@ -220,97 +226,194 @@
     return dt;
   }
 
-  // ---------- Valores ----------
+  // ============================================================
+  // Valores
+  // ============================================================
   function formatMoney(v) {
-    return v.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (Number(v) || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-  function roundUp2(v) { return Math.ceil(v * 100) / 100; }
+  function roundUp2(v) { return Math.ceil((Number(v) || 0) * 100) / 100; }
+  function round2(v) { return Math.round(((Number(v) || 0) + Number.EPSILON) * 100) / 100; }
+  function zeroIfTiny(v) { return Math.abs(v) < 0.005 ? 0 : v; }
 
-  // ---------- Juros pró-rata (ACT/360) ----------
+  // ============================================================
+  // Juros por dias (ACT/360)
+  // ============================================================
   function diasEntreDatasUTC(d1, d2) {
     const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
     const utc2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
     const msDia = 1000 * 60 * 60 * 24;
     return Math.max(0, Math.floor((utc2 - utc1) / msDia));
   }
-  function jurosProRataACT360(saldo, taxaAnual, dataInicio, dataFim) {
+
+  function jurosPorDiasACT360(saldoCapital, taxaAnual, dataInicio, dataFim) {
     const dias = diasEntreDatasUTC(dataInicio, dataFim);
-    const juros = saldo * (taxaAnual / 100) * (dias / 360);
-    const imposto = juros * 0.04;
-    return { dias, juros, imposto };
+    const juros = saldoCapital * (taxaAnual / 100) * (dias / 360);
+    return { dias, juros };
   }
 
-  // ---------- PMT (1.º período pode ser por dias; sem capitalizar saldo) ----------
-  function calcularPMTComIS(PV, n, taxaAnual, mesesPeriodo, dataInc, primeiraData) {
-    const i = (taxaAnual / 100) * (mesesPeriodo / 12);
-    let baixo = 0.01;
-    let alto = PV * 2;
-    let PMT = 0;
-
-    for (let iter = 0; iter < 60; iter++) {
-      PMT = (baixo + alto) / 2;
-      let saldo = PV;
-
-      for (let k = 0; k < n; k++) {
-        let juros;
-        if (k === 0 && dataInc && dataInc < primeiraData) {
-          juros = jurosProRataACT360(saldo, taxaAnual, dataInc, primeiraData).juros;
-        } else {
-          juros = saldo * i;
-        }
-        const imposto = juros * 0.04;
-        const amort = PMT - juros - imposto;
-        saldo -= amort;
-      }
-      if (saldo > 0) baixo = PMT; else alto = PMT;
-    }
-    return PMT;
+  function textoPeriodicidade(meses) {
+    return meses === 1 ? 'Mensal' : meses === 3 ? 'Trimestral' : meses === 6 ? 'Semestral' : 'Anual';
   }
 
-  function gerarPlano(PV, PMT, taxaAnual, primeiraData, mesesPeriodo, nMax = null, dataInc = null) {
-    const i = (taxaAnual / 100) * (mesesPeriodo / 12);
-    let saldo = PV;
+  // ============================================================
+  // Motor de cálculo
+  // Regras:
+  //  - J&D não gera juros nem imposto
+  //  - Prestação paga: 1) saldo J&D, 2) juros+IS do período, 3) capital
+  //  - Se juros+IS > prestação: o remanescente vai para saldo J&D (NÃO capitaliza)
+  //  - Com data de incumprimento: juros contam por dias (ACT/360) desde:
+  //      dataInc -> 1ª prestação; depois data anterior -> data atual
+  //    e taxa usada é SEMPRE a TAN (sem sobretaxa)
+  // ============================================================
+  function simularPlano({ capitalInicial, jdInicial, PMT, taxaAnual, primeiraData, mesesPeriodo, nMax = null, dataInc = null, maxIter = 600 }) {
+    let saldoCapital = round2(capitalInicial);
+    let saldoJD = round2(jdInicial);
+
     const linhas = [];
     let k = 0;
+    let dataAnterior = null;
 
-    while (saldo > 0.01 && (nMax === null || k < nMax)) {
+    const continuar = () => {
+      if (nMax !== null) return k < nMax;
+      return (saldoCapital > 0.005 || saldoJD > 0.005) && k < maxIter;
+    };
+
+    while (continuar()) {
       const dataVenc = new Date(primeiraData);
       dataVenc.setMonth(dataVenc.getMonth() + k * mesesPeriodo);
 
-      let juros;
-      if (k === 0 && dataInc && dataInc < dataVenc) {
-        juros = jurosProRataACT360(saldo, taxaAnual, dataInc, dataVenc).juros;
-      } else {
-        juros = saldo * i;
+      // 1) Juros do período (sempre sobre capital)
+      let jurosPeriodo = 0;
+
+      if (saldoCapital > 0.005) {
+        if (dataInc) {
+          const inicio = (k === 0 ? dataInc : dataAnterior);
+          jurosPeriodo = jurosPorDiasACT360(saldoCapital, taxaAnual, inicio, dataVenc).juros;
+        } else {
+          const i = (taxaAnual / 100) * (mesesPeriodo / 12);
+          jurosPeriodo = saldoCapital * i;
+        }
       }
 
-      const impostoSelo = juros * 0.04;
-      let prestacao = PMT;
-      let amortizacao = prestacao - juros - impostoSelo;
+      jurosPeriodo = round2(jurosPeriodo);
 
-      if (amortizacao > saldo) {
-        amortizacao = saldo;
-        prestacao = juros + impostoSelo + amortizacao;
+      // 2) Imposto do selo sobre juros (4%)
+      const impostoSelo = round2(jurosPeriodo * 0.04);
+
+      // Encargos do período
+      let encargosPeriodo = round2(jurosPeriodo + impostoSelo);
+
+      // 3) Aplicação da prestação
+      let prestacao = Number(PMT) || 0;
+      const totalARegularizarAgora = round2(saldoJD + encargosPeriodo + saldoCapital);
+
+      // Evitar pagar "a mais"
+      prestacao = round2(Math.min(prestacao, totalARegularizarAgora));
+
+      let restante = prestacao;
+
+      // 3a) paga saldo J&D primeiro
+      const pagoJD = round2(Math.min(restante, saldoJD));
+      saldoJD = round2(saldoJD - pagoJD);
+      restante = round2(restante - pagoJD);
+
+      // 3b) paga encargos do período (juros + IS)
+      const pagoEncargos = round2(Math.min(restante, encargosPeriodo));
+      encargosPeriodo = round2(encargosPeriodo - pagoEncargos);
+      restante = round2(restante - pagoEncargos);
+
+      // Se não pagar todos os encargos, acumulam em J&D (sem juros/IS adicionais; não capitaliza)
+      if (encargosPeriodo > 0.000001) {
+        saldoJD = round2(saldoJD + encargosPeriodo);
       }
 
-      saldo -= amortizacao;
+      // 3c) amortiza capital com o que sobrar
+      const amortizacao = round2(Math.min(restante, saldoCapital));
+      saldoCapital = round2(saldoCapital - amortizacao);
+
+      // limpar resíduos minúsculos
+      saldoCapital = zeroIfTiny(saldoCapital);
+      saldoJD = zeroIfTiny(saldoJD);
 
       linhas.push({
         parcela: k + 1,
         data: dataVenc,
         prestacao,
-        juros,
+        amortJD: pagoJD,            // NOVO: detalhe amortização para J&D
+        juros: jurosPeriodo,
         impostoSelo,
-        amortizacao,
-        saldoDepois: saldo
+        amortizacao,                // amortização de capital
+        saldoCapitalDepois: saldoCapital,
+        saldoJDDepois: saldoJD
       });
 
+      dataAnterior = dataVenc;
       k++;
     }
+
     return linhas;
   }
 
-  // ---------- Elementos ----------
+  // ============================================================
+  // Solver PMT (quando o utilizador dá o prazo)
+  // ============================================================
+  function calcularPMTComJD({ capitalInicial, jdInicial, n, taxaAnual, mesesPeriodo, dataInc, primeiraData }) {
+
+    // --- CASO ESPECIAL: 1 prestação (elimina tolerância + drift) ---
+    if (n === 1) {
+      let juros0 = 0;
+
+      if (capitalInicial > 0.005) {
+        if (dataInc) {
+          juros0 = jurosPorDiasACT360(capitalInicial, taxaAnual, dataInc, primeiraData).juros;
+        } else {
+          const i = (taxaAnual / 100) * (mesesPeriodo / 12);
+          juros0 = capitalInicial * i;
+        }
+      }
+
+      juros0 = round2(juros0);
+      const is0 = round2(juros0 * 0.04);
+
+      return round2(capitalInicial + jdInicial + juros0 + is0);
+    }
+
+    let baixo = 0.01;
+    let alto = (capitalInicial + jdInicial) * 2 + 1000;
+    let PMT = 0;
+
+    for (let iter = 0; iter < 70; iter++) {
+      PMT = (baixo + alto) / 2;
+
+      const plano = simularPlano({
+        capitalInicial,
+        jdInicial,
+        PMT,
+        taxaAnual,
+        primeiraData,
+        mesesPeriodo,
+        nMax: n,
+        dataInc,
+        maxIter: n
+      });
+
+      const last = plano[plano.length - 1] || null;
+      const saldoFinalCapital = last ? last.saldoCapitalDepois : capitalInicial;
+      const saldoFinalJD = last ? last.saldoJDDepois : jdInicial;
+      const saldoFinalTotal = saldoFinalCapital + saldoFinalJD;
+
+      // tolerância mais fina (não aceitar 0,01 como "ok")
+      if (saldoFinalTotal > 0.0001) baixo = PMT;
+      else alto = PMT;
+    }
+
+    return PMT;
+  }
+
+  // ============================================================
+  // Elementos
+  // ============================================================
   const tipoCalculoEl = document.getElementById('tipoCalculo');
   const campoPrazo = document.getElementById('campoPrazo');
   const campoPrestacao = document.getElementById('campoPrestacao');
@@ -322,7 +425,8 @@
 
   const nomeInput = document.getElementById('nomeCliente');
   const nifInput = document.getElementById('nifCliente');
-  const valorTotalInput = document.getElementById('valorTotal');
+  const capitalInput = document.getElementById('capital');
+  const jdInput = document.getElementById('jurosDespesas');
   const taxaInput = document.getElementById('taxaAnual');
   const dataIncInput = document.getElementById('dataIncumprimento');
   const primeiraDataInput = document.getElementById('primeiraData');
@@ -333,9 +437,10 @@
   const btnLimpar = document.getElementById('btnLimpar');
   const btnPDF = document.getElementById('btnPDF');
 
-  // ---------- Estado ----------
+  // Estado
   let planoAtual = [];
-  let PVAtual = 0;
+  let capitalAtual = 0;
+  let jdAtual = 0;
   let taxaAtual = 0;
   let primeiraDataAtual = null;
   let mesesPeriodoAtual = 1;
@@ -346,11 +451,7 @@
     campoPrestacao.style.display = tipoCalculoEl.value === 'A2' ? '' : 'none';
   });
 
-  function textoPeriodicidade(meses) {
-    return meses === 1 ? 'Mensal' : meses === 3 ? 'Trimestral' : meses === 6 ? 'Semestral' : 'Anual';
-  }
-
-  function atualizarResumo(nome, nif, PV, taxa, dataIncStr, primeiraDataStr, tipo, n) {
+  function atualizarResumo(nome, nif, capital, jd, taxa, dataIncStr, primeiraDataStr, tipo, n) {
     const dInc = parseDataPT(dataIncStr);
     const d1 = parseDataPT(primeiraDataStr);
 
@@ -358,16 +459,19 @@
     const primeiraFmt = d1 ? formatDatePT(d1) : '-';
 
     let extra = '';
-    if (dInc && d1 && dInc < d1) {
-      const calc = jurosProRataACT360(PV, taxa, dInc, d1);
-      extra = `<br><b>Juros até 1.ª prestação:</b> ${calc.dias} dias &nbsp; ` +
-              `<b>Juros:</b> ${formatMoney(calc.juros)} € &nbsp; ` +
-              `<b>I.S.:</b> ${formatMoney(calc.imposto)} €`;
+    if (dInc && d1 && capital > 0) {
+      const calc = jurosPorDiasACT360(capital, taxa, dInc, d1);
+      const juros = round2(calc.juros);
+      const imposto = round2(juros * 0.04);
+      extra =
+        `<br><b>Juros desde incumprimento até 1.ª prestação (sobre Capital):</b> ${calc.dias} dias &nbsp; ` +
+        `<b>Juros:</b> ${formatMoney(juros)} € &nbsp; ` +
+        `<b>I.S.:</b> ${formatMoney(imposto)} €`;
     }
 
     resumoCabecalho.innerHTML =
       `<b>Cliente:</b> ${nome || '-'} &nbsp;&nbsp; <b>NIF:</b> ${nif || '-'}<br>` +
-      `<b>Valor total:</b> ${formatMoney(PV)} € &nbsp;&nbsp; <b>TAN:</b> ${taxa}%<br>` +
+      `<b>Capital:</b> ${formatMoney(capital)} € &nbsp;&nbsp; <b>Juros &amp; Despesas:</b> ${formatMoney(jd)} € &nbsp;&nbsp; <b>TAN:</b> ${taxa}%<br>` +
       `<b>Data de incumprimento:</b> ${incFmt} &nbsp;&nbsp; <b>Primeira prestação:</b> ${primeiraFmt}<br>` +
       `<b>Tipo de cálculo:</b> ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'} &nbsp;&nbsp; ` +
       `<b>N.º prestações:</b> ${n} &nbsp;&nbsp; ` +
@@ -385,12 +489,14 @@
         <td>${l.parcela}</td>
         <td>${formatDatePT(l.data)}</td>
         <td><input class="editable-input" type="number" step="0.01"
-          value="${l.prestacao.toFixed(2)}"
+          value="${Number(l.prestacao).toFixed(2)}"
           onchange="editarPrestacao(this.value, ${l.parcela})"></td>
+        <td>${formatMoney(l.amortJD || 0)}</td>
         <td>${formatMoney(l.juros)}</td>
         <td>${formatMoney(l.impostoSelo)}</td>
         <td>${formatMoney(l.amortizacao)}</td>
-        <td>${formatMoney(l.saldoDepois)}</td>
+        <td>${formatMoney(l.saldoCapitalDepois)}</td>
+        <td>${formatMoney(l.saldoJDDepois)}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -400,15 +506,21 @@
   function calcular() {
     const nome = nomeInput.value;
     const nif = nifInput.value;
-    const PV = Number(valorTotalInput.value);
+
+    const capital = Number(capitalInput.value);
+    const jd = Number(jdInput.value || 0);
     const taxa = Number(taxaInput.value);
 
     const dataIncStr = (dataIncInput.value || '').trim();
     const primeiraDataStr = (primeiraDataInput.value || '').trim();
     const mesesPeriodo = Number(periodicidadeEl.value);
 
-    if (!PV || !taxa || !primeiraDataStr) {
-      alert('Preenche valor total, TAN e a data da primeira prestação.');
+    if (!capital || !taxa || !primeiraDataStr) {
+      alert('Preenche Capital, TAN e a data da primeira prestação.');
+      return;
+    }
+    if (capital < 0 || jd < 0) {
+      alert('Capital e Juros & Despesas não podem ser negativos.');
       return;
     }
 
@@ -440,130 +552,199 @@
         alert('Indica o número de prestações.');
         return;
       }
-      PMT = roundUp2(calcularPMTComIS(PV, n, taxa, mesesPeriodo, dataInc, primeiraData));
-      planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, n, dataInc);
+
+      PMT = roundUp2(calcularPMTComJD({
+        capitalInicial: capital,
+        jdInicial: jd,
+        n,
+        taxaAnual: taxa,
+        mesesPeriodo,
+        dataInc,
+        primeiraData
+      }));
+
+      planoAtual = simularPlano({
+        capitalInicial: capital,
+        jdInicial: jd,
+        PMT,
+        taxaAnual: taxa,
+        primeiraData,
+        mesesPeriodo,
+        nMax: n,
+        dataInc,
+        maxIter: n
+      });
+
     } else {
       PMT = Number(valorPrestInput.value);
       if (!PMT || PMT <= 0) {
         alert('Indica o valor da prestação.');
         return;
       }
-      planoAtual = gerarPlano(PV, PMT, taxa, primeiraData, mesesPeriodo, null, dataInc);
+
+      planoAtual = simularPlano({
+        capitalInicial: capital,
+        jdInicial: jd,
+        PMT,
+        taxaAnual: taxa,
+        primeiraData,
+        mesesPeriodo,
+        nMax: null,
+        dataInc,
+        maxIter: 600
+      });
+
       n = planoAtual.length;
     }
 
-    PVAtual = PV; // sem capitalizar
+    capitalAtual = round2(capital);
+    jdAtual = round2(jd);
     taxaAtual = taxa;
     primeiraDataAtual = primeiraData;
     mesesPeriodoAtual = mesesPeriodo;
     dataIncAtual = dataInc;
 
-    atualizarResumo(nome, nif, PV, taxa, dataIncStr, primeiraDataStr, tipo, n);
+    atualizarResumo(nome, nif, capitalAtual, jdAtual, taxaAtual, dataIncStr, primeiraDataStr, tipo, n);
     preencherTabela(planoAtual);
   }
 
-  // onchange inline
+  // ============================================================
+  // Edição de prestação (recalcula tudo com a nova prestação a partir da parcela editada)
+  // ============================================================
   window.editarPrestacao = function(novoValor, parcelaEditada) {
     novoValor = Number(novoValor);
-    if (novoValor <= 0) { alert('Prestação inválida.'); return; }
+    if (novoValor <= 0) { alert('Prestação inválida.'); preencherTabela(planoAtual); return; }
 
-    const i = (taxaAtual / 100) * (mesesPeriodoAtual / 12);
-    let saldo = PVAtual;
+    let saldoCapital = round2(capitalAtual);
+    let saldoJD = round2(jdAtual);
+
     const novoPlano = [];
 
-    // anteriores
-    for (let idx = 0; idx < parcelaEditada - 1; idx++) {
-      const antiga = planoAtual[idx];
+    function dataParcela(idx1based){
+      const d = new Date(primeiraDataAtual);
+      d.setMonth(d.getMonth() + (idx1based - 1) * mesesPeriodoAtual);
+      return d;
+    }
 
-      let juros;
-      if (idx === 0 && dataIncAtual && dataIncAtual < antiga.data) {
-        juros = jurosProRataACT360(saldo, taxaAtual, dataIncAtual, antiga.data).juros;
-      } else {
-        juros = saldo * i;
+    function jurosDoPeriodo(kZeroBased, dataVenc, dataAnterior) {
+      if (saldoCapital <= 0.005) return 0;
+
+      if (dataIncAtual) {
+        const inicio = (kZeroBased === 0 ? dataIncAtual : dataAnterior);
+        return jurosPorDiasACT360(saldoCapital, taxaAtual, inicio, dataVenc).juros;
       }
 
-      const impostoSelo = juros * 0.04;
-      const amortizacao = antiga.prestacao - juros - impostoSelo;
-      saldo -= amortizacao;
+      const i = (taxaAtual / 100) * (mesesPeriodoAtual / 12);
+      return saldoCapital * i;
+    }
+
+    function aplicarPrestacao(prestacao, kZeroBased, dataVenc, dataAnterior) {
+      let jurosPeriodo = jurosDoPeriodo(kZeroBased, dataVenc, dataAnterior);
+      jurosPeriodo = round2(jurosPeriodo);
+
+      const impostoSelo = round2(jurosPeriodo * 0.04);
+      let encargosPeriodo = round2(jurosPeriodo + impostoSelo);
+
+      const totalARegularizarAgora = round2(saldoJD + encargosPeriodo + saldoCapital);
+      prestacao = round2(Math.min(prestacao, totalARegularizarAgora));
+
+      let restante = prestacao;
+
+      // 1) J&D
+      const pagoJD = round2(Math.min(restante, saldoJD));
+      saldoJD = round2(saldoJD - pagoJD);
+      restante = round2(restante - pagoJD);
+
+      // 2) Encargos do período
+      const pagoEncargos = round2(Math.min(restante, encargosPeriodo));
+      encargosPeriodo = round2(encargosPeriodo - pagoEncargos);
+      restante = round2(restante - pagoEncargos);
+
+      // Encargos não pagos acumulam em J&D (não capitaliza)
+      if (encargosPeriodo > 0.000001) saldoJD = round2(saldoJD + encargosPeriodo);
+
+      // 3) Capital
+      const amortizacao = round2(Math.min(restante, saldoCapital));
+      saldoCapital = round2(saldoCapital - amortizacao);
+
+      saldoCapital = zeroIfTiny(saldoCapital);
+      saldoJD = zeroIfTiny(saldoJD);
+
+      return { prestacao, pagoJD, jurosPeriodo, impostoSelo, amortizacao };
+    }
+
+    // Recalcular anteriores com prestações antigas
+    let dataAnterior = null;
+    for (let idx = 1; idx < parcelaEditada; idx++) {
+      const antiga = planoAtual[idx - 1];
+      const dataVenc = dataParcela(idx);
+      const r = aplicarPrestacao(Number(antiga.prestacao), idx - 1, dataVenc, dataAnterior);
 
       novoPlano.push({
-        parcela: idx + 1,
-        data: antiga.data,
-        prestacao: antiga.prestacao,
-        juros,
-        impostoSelo,
-        amortizacao,
-        saldoDepois: saldo
+        parcela: idx,
+        data: dataVenc,
+        prestacao: r.prestacao,
+        amortJD: r.pagoJD,
+        juros: r.jurosPeriodo,
+        impostoSelo: r.impostoSelo,
+        amortizacao: r.amortizacao,
+        saldoCapitalDepois: saldoCapital,
+        saldoJDDepois: saldoJD
       });
+
+      dataAnterior = dataVenc;
     }
 
-    // editada
-    const dataAlterada = new Date(primeiraDataAtual);
-    dataAlterada.setMonth(dataAlterada.getMonth() + (parcelaEditada - 1) * mesesPeriodoAtual);
+    // Parcela editada
+    {
+      const idx = parcelaEditada;
+      const dataVenc = dataParcela(idx);
+      const r = aplicarPrestacao(novoValor, idx - 1, dataVenc, dataAnterior);
 
-    let jurosAlt;
-    if (parcelaEditada === 1 && dataIncAtual && dataIncAtual < dataAlterada) {
-      jurosAlt = jurosProRataACT360(saldo, taxaAtual, dataIncAtual, dataAlterada).juros;
-    } else {
-      jurosAlt = saldo * i;
+      novoPlano.push({
+        parcela: idx,
+        data: dataVenc,
+        prestacao: r.prestacao,
+        amortJD: r.pagoJD,
+        juros: r.jurosPeriodo,
+        impostoSelo: r.impostoSelo,
+        amortizacao: r.amortizacao,
+        saldoCapitalDepois: saldoCapital,
+        saldoJDDepois: saldoJD
+      });
+
+      dataAnterior = dataVenc;
     }
 
-    const impostoSeloAlt = jurosAlt * 0.04;
-    let amortAlt = novoValor - jurosAlt - impostoSeloAlt;
-
-    if (amortAlt > saldo) {
-      alert("O valor introduzido é superior ao saldo em dívida.");
-      preencherTabela(planoAtual);
-      return;
-    }
-
-    saldo -= amortAlt;
-
-    novoPlano.push({
-      parcela: parcelaEditada,
-      data: dataAlterada,
-      prestacao: novoValor,
-      juros: jurosAlt,
-      impostoSelo: impostoSeloAlt,
-      amortizacao: amortAlt,
-      saldoDepois: saldo
-    });
-
-    // restantes
+    // Restantes até liquidar tudo (cap 240)
     let k = parcelaEditada;
-    while (saldo > 0.01 && k < parcelaEditada + 240) {
+    const limite = parcelaEditada + 240;
+
+    while ((saldoCapital > 0.005 || saldoJD > 0.005) && k < limite) {
       k++;
-      const dataVenc = new Date(primeiraDataAtual);
-      dataVenc.setMonth(dataVenc.getMonth() + (k - 1) * mesesPeriodoAtual);
-
-      const juros = saldo * i;
-      const impostoSelo = juros * 0.04;
-      let prestacao = novoValor;
-      let amortizacao = prestacao - juros - impostoSelo;
-
-      if (amortizacao > saldo) {
-        amortizacao = saldo;
-        prestacao = juros + impostoSelo + amortizacao;
-      }
-
-      saldo -= amortizacao;
+      const dataVenc = dataParcela(k);
+      const r = aplicarPrestacao(novoValor, k - 1, dataVenc, dataAnterior);
 
       novoPlano.push({
         parcela: k,
         data: dataVenc,
-        prestacao,
-        juros,
-        impostoSelo,
-        amortizacao,
-        saldoDepois: saldo
+        prestacao: r.prestacao,
+        amortJD: r.pagoJD,
+        juros: r.jurosPeriodo,
+        impostoSelo: r.impostoSelo,
+        amortizacao: r.amortizacao,
+        saldoCapitalDepois: saldoCapital,
+        saldoJDDepois: saldoJD
       });
+
+      dataAnterior = dataVenc;
     }
 
     planoAtual = novoPlano;
     preencherTabela(planoAtual);
 
     atualizarResumo(
-      nomeInput.value, nifInput.value, PVAtual, taxaAtual,
+      nomeInput.value, nifInput.value, capitalAtual, jdAtual, taxaAtual,
       (dataIncInput.value || '').trim(),
       (primeiraDataInput.value || '').trim(),
       tipoCalculoEl.value, planoAtual.length
@@ -573,7 +754,8 @@
   function limpar() {
     nomeInput.value = '';
     nifInput.value = '';
-    valorTotalInput.value = '';
+    capitalInput.value = '';
+    jdInput.value = '0';
     taxaInput.value = '4';
     dataIncInput.value = '';
     primeiraDataInput.value = '';
@@ -586,7 +768,8 @@
     resumoCabecalho.style.display = 'none';
 
     planoAtual = [];
-    PVAtual = 0;
+    capitalAtual = 0;
+    jdAtual = 0;
     taxaAtual = 0;
     primeiraDataAtual = null;
     mesesPeriodoAtual = 1;
@@ -596,23 +779,22 @@
   btnCalcular.addEventListener('click', calcular);
   btnLimpar.addEventListener('click', limpar);
 
-  // ---------- Flatpickr init (calendário + dd/mm/yyyy) ----------
+  // Flatpickr
   function initCalendarioPT(selector) {
     flatpickr(selector, {
       locale: flatpickr.l10ns.pt,
       dateFormat: "d/m/Y",
-      allowInput: true,
-      // opcional: fecha ao selecionar
-      // clickOpens: true
+      allowInput: true
     });
   }
-
   initCalendarioPT("#dataIncumprimento");
   initCalendarioPT("#primeiraData");
 </script>
 
 <script>
-  // ---------- PDF ----------
+  // ============================================================
+  // PDF
+  // ============================================================
   btnPDF.addEventListener('click', () => {
     if (!planoAtual.length) { alert('Nada para exportar.'); return; }
 
@@ -625,25 +807,28 @@
     let y = 0;
     let page = 1;
 
-    const nome = nomeInput.value || "-";
-    const nif = nifInput.value || "-";
-    const PV = formatMoney(Number(valorTotalInput.value) || 0);
-    const taxa = taxaInput.value || "-";
+    const nome = document.getElementById('nomeCliente').value || "-";
+    const nif = document.getElementById('nifCliente').value || "-";
+    const capital = formatMoney(Number(document.getElementById('capital').value) || 0);
+    const jd = formatMoney(Number(document.getElementById('jurosDespesas').value) || 0);
+    const taxa = document.getElementById('taxaAnual').value || "-";
 
-    const dataIncStr = dataIncInput.value ? dataIncInput.value : "-";
-    const primeiraDataStr = primeiraDataInput.value ? primeiraDataInput.value : "-";
+    const dataIncStr = document.getElementById('dataIncumprimento').value ? document.getElementById('dataIncumprimento').value : "-";
+    const primeiraDataStr = document.getElementById('primeiraData').value ? document.getElementById('primeiraData').value : "-";
 
-    const tipo = tipoCalculoEl.value;
+    const tipo = document.getElementById('tipoCalculo').value;
     const n = planoAtual.length;
 
+    const mesesPeriodoAtualLocal = Number(document.getElementById('periodicidade').value || 1);
     const periodicidadeTxt =
-      mesesPeriodoAtual === 1 ? 'Mensal' :
-      mesesPeriodoAtual === 3 ? 'Trimestral' :
-      mesesPeriodoAtual === 6 ? 'Semestral' : 'Anual';
+      mesesPeriodoAtualLocal === 1 ? 'Mensal' :
+      mesesPeriodoAtualLocal === 3 ? 'Trimestral' :
+      mesesPeriodoAtualLocal === 6 ? 'Semestral' : 'Anual';
 
+    // Caixa resumo
     pdf.setFillColor(245, 245, 245);
     pdf.setDrawColor(180, 180, 180);
-    pdf.roundedRect(margin, 40, pageWidth - margin * 2, 150, 6, 6, "FD");
+    pdf.roundedRect(margin, 40, pageWidth - margin * 2, 160, 6, 6, "FD");
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
@@ -652,19 +837,20 @@
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(12);
     pdf.text(`Cliente: ${nome}`, margin + 10, 90);
-    pdf.text(`NIF: ${nif}`, margin + 300, 90);
+    pdf.text(`NIF: ${nif}`, margin + 320, 90);
 
-    pdf.text(`Valor total: ${PV} €`, margin + 10, 110);
-    pdf.text(`TAN: ${taxa}%`, margin + 300, 110);
+    pdf.text(`Capital: ${capital} €`, margin + 10, 110);
+    pdf.text(`Juros & Despesas: ${jd} €`, margin + 320, 110);
+    pdf.text(`TAN: ${taxa}%`, margin + 620, 110);
 
     pdf.text(`Data incumprimento: ${dataIncStr}`, margin + 10, 130);
-    pdf.text(`Primeira prestação: ${primeiraDataStr}`, margin + 300, 130);
+    pdf.text(`Primeira prestação: ${primeiraDataStr}`, margin + 320, 130);
 
     pdf.text(`Tipo cálculo: ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'}`, margin + 10, 150);
-    pdf.text(`N.º prestações: ${n}`, margin + 300, 150);
-    pdf.text(`Periodicidade: ${periodicidadeTxt}`, margin + 500, 150);
+    pdf.text(`N.º prestações: ${n}`, margin + 320, 150);
+    pdf.text(`Periodicidade: ${periodicidadeTxt}`, margin + 620, 150);
 
-    y = 210;
+    y = 230;
 
     function desenharCabecalhoTabela() {
       pdf.setFont("helvetica", "bold");
@@ -672,23 +858,25 @@
       pdf.text("Plano Financeiro", margin, y);
       y += 20;
 
-      pdf.setFontSize(11);
+      pdf.setFontSize(10);
       const headers = [
         { label: "#", x: margin },
-        { label: "Data", x: margin + 40 },
-        { label: "Prestação (€)", x: margin + 140 },
-        { label: "Juros (€)", x: margin + 260 },
-        { label: "I.S. (4%) (€)", x: margin + 360 },
-        { label: "Amortização (€)", x: margin + 480 },
-        { label: "Saldo (€)", x: margin + 620 }
+        { label: "Data", x: margin + 28 },
+        { label: "Prestação", x: margin + 110 },
+        { label: "Amort. J&D", x: margin + 200 },
+        { label: "Juros", x: margin + 300 },
+        { label: "I.S.", x: margin + 360 },
+        { label: "Capital", x: margin + 420 },
+        { label: "Saldo Capital", x: margin + 490 },
+        { label: "Saldo J&D", x: margin + 610 }
       ];
       headers.forEach(h => pdf.text(h.label, h.x, y));
       pdf.setLineWidth(1);
       pdf.line(margin, y + 5, pageWidth - margin, y + 5);
-      y += 25;
+      y += 22;
 
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
+      pdf.setFontSize(10);
     }
 
     function desenharPaginacao() {
@@ -700,17 +888,19 @@
     function desenharLinha(l) {
       const col = [
         { text: String(l.parcela), x: margin },
-        { text: formatDatePT(l.data), x: margin + 40 },
-        { text: formatMoney(l.prestacao), x: margin + 140 },
-        { text: formatMoney(l.juros), x: margin + 260 },
+        { text: formatDatePT(l.data), x: margin + 28 },
+        { text: formatMoney(l.prestacao), x: margin + 110 },
+        { text: formatMoney(l.amortJD || 0), x: margin + 200 },
+        { text: formatMoney(l.juros), x: margin + 300 },
         { text: formatMoney(l.impostoSelo), x: margin + 360 },
-        { text: formatMoney(l.amortizacao), x: margin + 480 },
-        { text: formatMoney(l.saldoDepois), x: margin + 620 }
+        { text: formatMoney(l.amortizacao), x: margin + 420 },
+        { text: formatMoney(l.saldoCapitalDepois), x: margin + 490 },
+        { text: formatMoney(l.saldoJDDepois), x: margin + 610 }
       ];
       col.forEach(c => pdf.text(c.text, c.x, y));
       pdf.setLineWidth(0.5);
       pdf.line(margin, y + 5, pageWidth - margin, y + 5);
-      y += 25;
+      y += 20;
     }
 
     desenharCabecalhoTabela();
