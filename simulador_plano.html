@@ -128,7 +128,7 @@
         <input id="capital" type="number" step="0.01" />
       </div>
       <div class="field">
-        <label>Juros & Despesas/Fees (€)</label>
+        <label>Juros, Despesas, Fees (€)</label>
         <input id="jurosDespesas" type="number" step="0.01" value="0" />
       </div>
       <div class="field">
@@ -187,12 +187,12 @@
           <th>#</th>
           <th>Data</th>
           <th>Prestação (€)</th>
-          <th>J&D/F (€)</th>
+          <th>J,D,F (€)</th>
           <th>Juros (€)</th>
           <th>I.S. (€)</th>
           <th>Capital (€)</th>
           <th>Saldo Capital (€)</th>
-          <th>Saldo J&D/F (€)</th>
+          <th>Saldo J,D,F (€)</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -435,9 +435,9 @@ function atualizarResumo(nome, nif, capital, jd, taxa, dataIncStr, primeiraDataS
 
   resumoCabecalho.innerHTML =
     `<b>Cliente:</b> ${nome || '-'}  <b>NIF:</b> ${nif || '-'}<br>` +
-    `<b>Capital:</b> ${formatMoney(capital)} €  <b>Juros & Despesas/Fees:</b> ${formatMoney(jd)} €  <b>TAN:</b> ${taxa}%<br>` +
+    `<b>Capital:</b> ${formatMoney(capital)} €  <b>Juros, Despesas, Fees:</b> ${formatMoney(jd)} €  <b>TAN:</b> ${taxa}%<br>` +
     `<b>Data de incumprimento:</b> ${incFmt}  <b>Primeira prestação:</b> ${primeiraFmt}<br>` +
-    `<b>Tipo de cálculo:</b> ${tipo === 'A' ? 'Por prazo' : 'Presta��ão definida'}  ` +
+    `<b>Tipo de cálculo:</b> ${tipo === 'A' ? 'Por prazo' : 'Prestação definida'}  ` +
     `<b>N.º prestações:</b> ${n}  ` +
     `<b>Periodicidade:</b> ${textoPeriodicidade(mesesPeriodoAtual)}` +
     extra;
@@ -482,7 +482,7 @@ function calcular() {
     return;
   }
   if (capital < 0 || jd < 0) {
-    alert('Capital e Juros & Despesas/Fees não podem ser negativos.');
+    alert('Capital e Juros, Despesas, Fees não podem ser negativos.');
     return;
   }
 
@@ -806,7 +806,7 @@ btnPDF.addEventListener('click', () => {
   pdf.text(`Cliente: ${nome}`, margin + 10, 90);
   pdf.text(`NIF: ${nif}`, margin + 320, 90);
   pdf.text(`Capital: ${capital} €`, margin + 10, 110);
-  pdf.text(`Juros & Despesas/Fees: ${jd} €`, margin + 320, 110);
+  pdf.text(`Juros, Despesas, Fees: ${jd} €`, margin + 320, 110);
   pdf.text(`TAN: ${taxa}%`, margin + 620, 110);
   pdf.text(`Data incumprimento: ${dataIncStr}`, margin + 10, 130);
   pdf.text(`Primeira prestação: ${primeiraDataStr}`, margin + 320, 130);
@@ -827,12 +827,12 @@ btnPDF.addEventListener('click', () => {
       { label: "#", x: margin },
       { label: "Data", x: margin + 28 },
       { label: "Prestação", x: margin + 110 },
-      { label: "J&D/F", x: margin + 200 },
+      { label: "J,D,F", x: margin + 200 },
       { label: "Juros", x: margin + 300 },
       { label: "I.S.", x: margin + 360 },
       { label: "Capital", x: margin + 420 },
       { label: "Saldo Capital", x: margin + 490 },
-      { label: "Saldo J&D/F", x: margin + 610 }
+      { label: "Saldo J,D,F", x: margin + 610 }
     ];
     headers.forEach(h => pdf.text(h.label, h.x, y));
     pdf.setLineWidth(1);
