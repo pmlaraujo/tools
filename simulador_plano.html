@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8" />
@@ -99,6 +99,11 @@
       font-size: 16px;
       text-align: right;
     }
+    .table-total td {
+      background: #eef2ff;
+      font-weight: bold;
+      border-top: 3px solid #6b7280;
+    }
   </style>
 </head>
 
@@ -196,6 +201,7 @@
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
     </table>
   </div>
 
@@ -447,6 +453,9 @@ function atualizarResumo(nome, nif, capital, jd, taxa, dataIncStr, primeiraDataS
 
 function preencherTabela(plano) {
   tbody.innerHTML = '';
+  const tfoot = document.getElementById('tfoot');
+  tfoot.innerHTML = '';
+
   plano.forEach((l) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -464,6 +473,31 @@ function preencherTabela(plano) {
     `;
     tbody.appendChild(tr);
   });
+
+  if (plano.length) {
+    const totalPrestacao = plano.reduce((s, l) => s + Number(l.prestacao || 0), 0);
+    const totalJD = plano.reduce((s, l) => s + Number(l.jd || 0), 0);
+    const totalJuros = plano.reduce((s, l) => s + Number(l.juros || 0), 0);
+    const totalIS = plano.reduce((s, l) => s + Number(l.impostoSelo || 0), 0);
+    const totalCapital = plano.reduce((s, l) => s + Number(l.amortizacao || 0), 0);
+    const saldoFinalCapital = plano[plano.length - 1]?.saldoCapitalDepois || 0;
+    const saldoFinalJD = plano[plano.length - 1]?.saldoJDDepois || 0;
+
+    tfoot.innerHTML = `
+      <tr class="table-total">
+        <td><strong>Total</strong></td>
+        <td>-</td>
+        <td><strong>${formatMoney(totalPrestacao)}</strong></td>
+        <td><strong>${formatMoney(totalJD)}</strong></td>
+        <td><strong>${formatMoney(totalJuros)}</strong></td>
+        <td><strong>${formatMoney(totalIS)}</strong></td>
+        <td><strong>${formatMoney(totalCapital)}</strong></td>
+        <td><strong>${formatMoney(saldoFinalCapital)}</strong></td>
+        <td><strong>${formatMoney(saldoFinalJD)}</strong></td>
+      </tr>
+    `;
+  }
+
   tabela.style.display = plano.length ? 'table' : 'none';
 }
 
