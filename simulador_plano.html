@@ -911,6 +911,33 @@ btnPDF.addEventListener('click', () => {
     y += 20;
   }
 
+  const totalPrestacao = planoAtual.reduce((s, l) => s + Number(l.prestacao || 0), 0);
+  const totalJD = planoAtual.reduce((s, l) => s + Number(l.jd || 0), 0);
+  const totalJuros = planoAtual.reduce((s, l) => s + Number(l.juros || 0), 0);
+  const totalIS = planoAtual.reduce((s, l) => s + Number(l.impostoSelo || 0), 0);
+  const totalCapital = planoAtual.reduce((s, l) => s + Number(l.amortizacao || 0), 0);
+
+  function desenharLinhaTotal() {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    const col = [
+      { text: "Total", x: margin },
+      { text: "", x: margin + 28 },
+      { text: formatMoney(totalPrestacao), x: margin + 110 },
+      { text: formatMoney(totalJD), x: margin + 200 },
+      { text: formatMoney(totalJuros), x: margin + 300 },
+      { text: formatMoney(totalIS), x: margin + 360 },
+      { text: formatMoney(totalCapital), x: margin + 420 },
+      { text: "", x: margin + 490 },
+      { text: "", x: margin + 610 }
+    ];
+    col.forEach(c => pdf.text(c.text, c.x, y));
+    pdf.setLineWidth(1);
+    pdf.line(margin, y + 5, pageWidth - margin, y + 5);
+    y += 20;
+    pdf.setFont("helvetica", "normal");
+  }
+
   desenharCabecalhoTabela();
 
   planoAtual.forEach((l) => {
@@ -924,6 +951,15 @@ btnPDF.addEventListener('click', () => {
     desenharLinha(l);
   });
 
+  if (y > pageHeight - 60) {
+    desenharPaginacao();
+    pdf.addPage();
+    page++;
+    y = 40;
+    desenharCabecalhoTabela();
+  }
+
+  desenharLinhaTotal();
   desenharPaginacao();
   pdf.save("plano_pagamentos.pdf");
 });
