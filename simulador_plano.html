@@ -100,9 +100,10 @@
       text-align: right;
     }
     .table-total td {
-      background: #eef2ff;
+      background: rgb(0,122,130);
+      color: white;
       font-weight: bold;
-      border-top: 3px solid #6b7280;
+      border-top: 3px solid rgb(0,122,130);
     }
   </style>
 </head>
@@ -224,6 +225,15 @@ function parseDataPT(str) {
 ============================================================ */
 function formatMoney(v) {
   return (Number(v) || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatMoneyInput(v) {
+  return formatMoney(v).replace(/\./g, '');
+}
+function parseMoneyInput(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v).trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 }
 function roundUp2(v) { return Math.ceil((Number(v) || 0) * 100) / 100; }
 function round2(v) { return Math.round(((Number(v) || 0) + Number.EPSILON) * 100) / 100; }
@@ -461,8 +471,8 @@ function preencherTabela(plano) {
     tr.innerHTML = `
       <td>${l.parcela}</td>
       <td>${formatDatePT(l.data)}</td>
-      <td><input class="editable-input" type="number" step="0.01"
-          value="${Number(l.prestacao).toFixed(2)}"
+      <td><input class="editable-input" type="text"
+          value="${formatMoneyInput(l.prestacao)}"
           onchange="editarPrestacao(this.value, ${l.parcela})"></td>
       <td>${formatMoney(l.jd || 0)}</td>
       <td>${formatMoney(l.juros || 0)}</td>
@@ -486,14 +496,14 @@ function preencherTabela(plano) {
     tfoot.innerHTML = `
       <tr class="table-total">
         <td><strong>Total</strong></td>
-        <td>-</td>
+        <td></td>
         <td><strong>${formatMoney(totalPrestacao)}</strong></td>
         <td><strong>${formatMoney(totalJD)}</strong></td>
         <td><strong>${formatMoney(totalJuros)}</strong></td>
         <td><strong>${formatMoney(totalIS)}</strong></td>
         <td><strong>${formatMoney(totalCapital)}</strong></td>
-        <td><strong>${formatMoney(saldoFinalCapital)}</strong></td>
-        <td><strong>${formatMoney(saldoFinalJD)}</strong></td>
+        <td></td>
+        <td></td>
       </tr>
     `;
   }
@@ -606,7 +616,7 @@ function calcular() {
    (REGRA corrigida também aqui)
 ============================================================ */
 window.editarPrestacao = function(novoValor, parcelaEditada) {
-  novoValor = Number(novoValor);
+  novoValor = parseMoneyInput(novoValor);
   if (novoValor <= 0) { alert('Prestação inválida.'); preencherTabela(planoAtual); return; }
 
   let saldoCapital = round2(capitalAtual);
