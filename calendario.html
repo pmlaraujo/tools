@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f4ec">
+  <title>Gestão de Equipas · Calendário DRCR</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202b27;
+      --muted: #64716b;
+      --paper: #fbfcf8;
+      --canvas: #f0f3eb;
+      --line: #dce3d8;
+      --green: #237b62;
+      --green-dark: #175642;
+      --green-soft: #e0f1e8;
+      --coral: #c85c43;
+      --coral-soft: #fbe8e0;
+      --gold: #d4a63b;
+      --gold-soft: #fff3d4;
+      --radius: 8px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background-color: var(--canvas);
+      background-image: radial-gradient(#cbd6c8 0.65px, transparent 0.65px);
+      background-size: 15px 15px;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #e6b84f; outline-offset: 3px; }
+    .shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 26px 0 42px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 25px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 auto; border-radius: 12px 12px 12px 4px; color: white; background: var(--green); font-size: 20px; font-weight: 800; }
+    .brand-name { font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 700; }
+    .brand-caption { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .mode-switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+    .mode-button { min-height: 38px; padding: 8px 13px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .mode-button[aria-pressed="true"] { color: white; background: var(--green); }
+    .mode-home .mode-button[aria-pressed="true"] { background: var(--coral); }
+    .surface { overflow: hidden; border: 1px solid #dfe5dc; border-radius: 12px; background: var(--paper); box-shadow: 0 14px 35px rgb(34 54 43 / 8%); animation: arrive 240ms ease-out both; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+    .page-intro { padding: 36px 40px 30px; border-bottom: 1px solid var(--line); }
+    .eyebrow { margin: 0 0 10px; color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .mode-home .eyebrow { color: var(--coral); }
+    h1, h2, p { margin-top: 0; }
+    h1, h2 { font-family: Georgia, "Times New Roman", serif; }
+    h1 { margin-bottom: 8px; font-size: clamp(26px, 4vw, 36px); line-height: 1.15; }
+    .intro-copy { max-width: 620px; margin-bottom: 0; color: var(--muted); line-height: 1.55; }
+    .team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 26px 40px 34px; }
+    .team-card { display: flex; min-height: 104px; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 21px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; text-align: left; cursor: pointer; transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease; }
+    .team-card:hover { transform: translateY(-2px); border-color: #9cbeaa; box-shadow: 0 8px 18px rgb(34 54 43 / 7%); }
+    .team-card-copy { display: flex; align-items: center; gap: 15px; min-width: 0; }
+    .team-icon { display: grid; width: 46px; height: 46px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: var(--green-soft); color: var(--green-dark); font-size: 14px; font-weight: 800; }
+    .team-card:nth-child(2) .team-icon { background: var(--gold-soft); color: #80621f; }
+    .team-card:nth-child(3) .team-icon { background: var(--coral-soft); color: #9f432e; }
+    .team-card:nth-child(4) .team-icon { background: #e8ebfa; color: #46548e; }
+    .team-title { display: block; font-size: 17px; font-weight: 800; }
+    .team-caption { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .team-count { min-width: 61px; text-align: right; }
+    .team-count strong { display: block; font-size: 21px; }
+    .team-count span { color: var(--muted); font-size: 11px; }
+    .arrow { color: #8d9991; font-size: 20px; }
+    .subhead { padding: 23px 34px 20px; border-bottom: 1px solid var(--line); }
+    .breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 14px; color: var(--muted); font-size: 12px; }
+    .crumb { padding: 0; border: 0; background: none; color: var(--green-dark); cursor: pointer; font-weight: 700; }
+    .crumb[disabled] { color: var(--muted); cursor: default; font-weight: 400; }
+    .crumb-separator { color: #a4aea7; }
+    .subhead-row { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+    .subhead h1 { margin-bottom: 0; font-size: 29px; }
+    .year-control { display: inline-flex; align-items: center; gap: 12px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+    .year-control button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 18px; }
+    .year-control button:hover { background: var(--canvas); }
+    .year-value { min-width: 43px; text-align: center; font-size: 14px; font-weight: 800; }
+    .month-stepper { display: inline-flex; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+    .month-stepper button { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 20px; }
+    .month-stepper button:hover { background: var(--canvas); }
+    .month-stepper-label { padding: 0 5px; color: var(--muted); font-size: 11px; font-weight: 800; }
+    .month-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 25px 34px 34px; }
+    .month-card { display: flex; min-height: 100px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 15px; border: 1px solid var(--line); border-radius: var(--radius); background: white; text-align: center; cursor: pointer; transition: border-color 140ms ease, background 140ms ease; }
+    .month-card:hover { border-color: #9cbeaa; background: #f8fbf6; }
+    .month-name { font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 700; }
+    .month-meta { color: var(--muted); font-size: 11px; }
+    .calendar-tools { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 20px 34px; border-bottom: 1px solid var(--line); }
+    .person-field { width: min(320px, 100%); }
+    .person-field label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 800; }
+    .person-field input { width: 100%; height: 41px; padding: 0 12px; border: 1px solid #cbd6ca; border-radius: 7px; background: #fff; color: var(--ink); }
+    .responsible-settings { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; padding: 16px 34px; border-bottom: 1px solid var(--line); background: #f8faf5; }
+    .responsible-settings .person-field { flex: 1 1 260px; }
+    .responsible-settings button, .approval-actions button { min-height: 38px; padding: 8px 12px; border: 0; border-radius: 6px; background: var(--green); color: white; cursor: pointer; font-size: 12px; font-weight: 800; }
+    .approval-panel { padding: 18px 34px; border-top: 1px solid var(--line); }
+    .approval-panel h2 { margin: 0 0 6px; font-size: 20px; }
+    .approval-note { margin: 0 0 13px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .approval-list { display: grid; gap: 8px; }
+    .approval-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+    .approval-item-copy { font-size: 13px; line-height: 1.45; }
+    .approval-item-copy small { display: block; color: var(--muted); }
+    .approval-actions { display: flex; gap: 7px; }
+    .approval-actions[hidden] { display: none; }
+    .approval-actions .reject-button { border: 1px solid #e6b9ad; background: white; color: #9f432e; }
+    .marker.pending { border: 1px dashed #9b7018; background: var(--gold-soft); color: #74591c; }
+    .day-cell.has-pending { border-style: dashed; }
+    .approval-empty { margin: 0; color: var(--muted); font-size: 12px; }
+    .mode-hint { max-width: 280px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; text-align: right; }
+    .calendar-wrap { padding: 20px 34px 29px; }
+    .weekdays, .days-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 7px; }
+    .weekdays { margin-bottom: 7px; }
+    .weekday { padding: 7px 3px; color: var(--muted); font-size: 10px; font-weight: 800; text-align: center; text-transform: uppercase; }
+    .day-cell { position: relative; display: flex; min-width: 0; min-height: 78px; flex-direction: column; align-items: flex-start; gap: 8px; padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: white; text-align: left; cursor: pointer; transition: border-color 120ms ease, background 120ms ease; }
+    .day-cell:hover { border-color: var(--green); }
+    .mode-home .day-cell:hover { border-color: var(--coral); }
+    .day-cell.empty { visibility: hidden; pointer-events: none; }
+    .day-cell.weekend { background: #f8f9f5; }
+    .day-cell.holiday { border-color: #e8cc82; background: #fffaf0; }
+    .overlap-badge { position: absolute; top: 3px; right: 3px; z-index: 1; display: grid; min-width: 17px; height: 17px; place-items: center; padding: 0 3px; border-radius: 5px; background: #b94a36; color: white; font-size: 9px; font-weight: 800; }
+    .day-cell.today .day-number { display: grid; width: 23px; height: 23px; place-items: center; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--gold-soft); }
+    .day-number { font-size: 12px; font-weight: 800; }
+    .holiday-label { display: block; max-width: 100%; overflow: hidden; padding: 2px 4px; border-radius: 4px; background: var(--gold-soft); color: #74591c; font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .day-markers { display: flex; flex-wrap: wrap; gap: 3px; }
+    .marker { display: inline-grid; min-width: 22px; height: 20px; place-items: center; padding: 0 4px; border-radius: 5px; background: var(--person-color, var(--green-soft)); color: var(--person-ink, var(--green-dark)); font-size: 9px; font-weight: 800; }
+    .marker-selected { outline: 2px solid currentColor; outline-offset: 1px; opacity: 1; }
+    .day-cell.has-selected-mark { box-shadow: inset 0 0 0 2px var(--green); }
+    .mode-home .day-cell.has-selected-mark { box-shadow: inset 0 0 0 2px var(--coral); }
+    .roster-person { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+    .person-swatch { display: inline-grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border-radius: 6px; background: var(--person-color); color: var(--person-ink); font-size: 9px; font-weight: 800; }
+    .person-filter { display: flex; width: 100%; align-items: center; gap: 8px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+    .person-filter[aria-pressed="true"] > span:last-child { color: var(--green-dark); text-decoration: underline; text-underline-offset: 3px; }
+    .day-cell.has-mark { border-color: #9bc7ae; background: #f0f8f2; }
+    .mode-home .day-cell.has-mark { border-color: #e5a491; background: #fff5f1; }
+    .calendar-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; color: var(--muted); font-size: 12px; }
+    .legend { display: flex; align-items: center; gap: 8px; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+    .mode-home .legend-dot { background: var(--coral); }
+    .person-summary { margin: 0; padding: 12px 34px; border-bottom: 1px solid var(--line); background: #f0f8f2; color: var(--green-dark); font-size: 13px; font-weight: 800; }
+    .mode-home .person-summary { background: #fff5f1; color: #9f432e; }
+    .person-summary:empty { display: none; }
+    .year-roster { margin: 0 34px; padding: 20px 0 26px; border-top: 1px solid var(--line); }
+    .year-roster-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .year-roster h2 { margin-bottom: 0; font-size: 20px; }
+    .year-roster table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .year-roster th, .year-roster td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; overflow-wrap: anywhere; }
+    .year-roster th { color: var(--muted); font-size: 11px; }
+    .year-roster td { font-size: 13px; }
+    .year-roster th:first-child, .year-roster td:first-child { width: 42%; padding-left: 0; font-weight: 700; }
+    .year-roster th:last-child, .year-roster td:last-child { width: 58%; text-align: center; }
+    .year-roster.home-summary th:first-child, .year-roster.home-summary td:first-child { width: 58%; }
+    .year-roster.home-summary th:last-child, .year-roster.home-summary td:last-child { width: 42%; }
+    .vacation-balance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 5px; }
+    .balance-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
+    .balance-stat strong { font-size: 13px; }
+    .balance-stat small, .quota-edit { color: var(--muted); font-size: 9px; }
+    .balance-over strong, .balance-over small { color: var(--coral); }
+    .quota-edit { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .quota-edit input { width: 58px; max-width: 100%; height: 28px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); font-size: 11px; text-align: center; }
+    .roster-note, .roster-empty { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .holiday-legend { display: inline-flex; align-items: center; gap: 7px; }
+    .holiday-legend-mark { width: 10px; height: 10px; border: 1px solid #e8cc82; border-radius: 3px; background: var(--gold-soft); }
+    .calendar-legend { display: flex; flex-wrap: wrap; gap: 12px; }
+    .calendar-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+    .calendar-state-mark { width: 10px; height: 10px; border: 1px solid var(--line); border-radius: 3px; }
+    .calendar-state-mark.today { border-color: #e6c46e; background: var(--gold-soft); }
+    .calendar-state-mark.state-weekend { background: #f0f2ed; }
+    .calendar-state-mark.state-holiday { border-color: #e8cc82; background: var(--gold-soft); }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; display: flex; max-width: calc(100vw - 40px); align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid #43534b; border-radius: 8px; background: var(--ink); color: white; box-shadow: 0 8px 26px rgb(22 38 29 / 22%); }
+    .toast span { font-size: 13px; line-height: 1.4; }
+    .toast button { min-height: 32px; padding: 6px 10px; border: 0; border-radius: 5px; background: var(--gold-soft); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 800; }
+    .dialog-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgb(25 36 31 / 55%); }
+    .vacation-dialog { width: min(1040px, 100%); max-height: min(90vh, 900px); overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); box-shadow: 0 24px 70px rgb(0 0 0 / 28%); }
+    .vacation-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 12px; }
+    .vacation-dialog h2 { margin: 0 0 7px; font-size: 25px; }
+    .vacation-dialog-summary { margin: 0; color: var(--muted); font-size: 13px; }
+    .dialog-close { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: white; cursor: pointer; font-size: 20px; }
+    .year-calendar-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .mini-month { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+    .mini-month h3 { margin: 0 0 9px; font-family: Georgia, "Times New Roman", serif; font-size: 15px; }
+    .mini-weekdays, .mini-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+    .mini-weekdays { margin-bottom: 4px; }
+    .mini-weekday { color: var(--muted); font-size: 9px; font-weight: 800; text-align: center; }
+    .mini-day { display: grid; aspect-ratio: 1; min-width: 0; place-items: center; border-radius: 4px; color: var(--ink); font-size: 10px; }
+    .mini-day.empty { visibility: hidden; }
+    .mini-day.weekend { color: #929b95; background: #f3f5f1; }
+    .mini-day.holiday { position: relative; box-shadow: inset 0 0 0 1px #c2942f; }
+    .mini-day.holiday::after { position: absolute; right: 2px; bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: #9b7018; content: ""; }
+    .mini-day.vacation { background: var(--person-color); color: var(--person-ink); font-weight: 800; }
+    .vacation-dialog-legend { display: flex; align-items: center; gap: 7px; margin-top: 16px; color: var(--muted); font-size: 11px; }
+    .vacation-legend-swatch { width: 13px; height: 13px; border-radius: 4px; background: var(--person-color); }
+    .holiday-legend-swatch { width: 10px; height: 10px; border: 1px solid #c2942f; border-radius: 50%; background: var(--gold-soft); }
+    @media (max-width: 700px) { .year-calendar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 480px) { .vacation-dialog { padding: 17px 12px; } .year-calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .mini-month { padding: 8px; } }
+    .storage-note { padding: 13px 34px; border-top: 1px solid var(--line); background: #f8faf5; color: var(--muted); font-size: 11px; }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 24px, 560px); padding-top: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; gap: 13px; }
+      .mode-switch { width: 100%; }
+      .mode-button { flex: 1; }
+      .page-intro { padding: 27px 22px 23px; }
+      .team-grid { gap: 9px; padding: 18px 18px 23px; }
+      .team-card { min-height: 95px; gap: 8px; padding: 13px; }
+      .team-card-copy { gap: 9px; }
+      .team-icon { width: 38px; height: 38px; }
+      .team-title { font-size: 15px; }
+      .team-caption { font-size: 10px; }
+      .team-count { min-width: 36px; }
+      .team-count strong { font-size: 18px; }
+      .team-count span { font-size: 9px; }
+      .subhead { padding: 18px 19px 16px; }
+      .subhead-row { align-items: flex-start; flex-direction: column; }
+      .subhead h1 { font-size: 26px; }
+      .month-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 18px; }
+      .month-card { min-height: 86px; padding: 11px; }
+      .month-name { font-size: 17px; }
+      .calendar-tools { align-items: stretch; flex-direction: column; gap: 12px; padding: 17px 19px; }
+      .person-field { width: 100%; }
+      .responsible-settings, .approval-panel { padding-right: 19px; padding-left: 19px; }
+      .mode-hint { max-width: none; text-align: left; }
+      .person-summary { padding: 12px 19px; }
+      .year-roster { margin: 0 19px; }
+      .year-roster th, .year-roster td { padding: 8px 4px; font-size: 11px; }
+      .year-roster th:first-child, .year-roster td:first-child { width: 36%; padding-left: 0; }
+      .calendar-wrap { padding: 15px 12px 22px; }
+      .weekdays, .days-grid { gap: 4px; }
+      .weekday { font-size: 9px; }
+      .day-cell { min-height: 58px; gap: 5px; padding: 6px; }
+      .day-number { font-size: 11px; }
+      .marker { min-width: 19px; height: 17px; font-size: 8px; }
+      .storage-note { padding: 12px 19px; }
+    }
+    @media (max-width: 390px) {
+      .team-card { align-items: flex-start; flex-direction: column; }
+      .team-count { display: none; }
+      .team-card-copy { align-items: flex-start; flex-direction: column; }
+      .day-cell { min-height: 51px; padding: 4px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell" id="app" aria-live="polite"></main>
+  <script>
+    const teams = ["GT", "EJ", "Jud", "Apoio"];
+    const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+    const storageKey = "calendario-equipa-marcacoes-v1";
+    const nameKey = "calendario-equipa-nome-v1";
+    const quotaStorageKey = "calendario-equipa-quotas-v1";
+    const responsibleStorageKey = "calendario-equipa-responsaveis-v1";
+    const app = document.querySelector("#app");
+    const state = { page: "teams", team: "", month: 0, year: new Date().getFullYear(), mode: "ferias", person: localStorage.getItem(nameKey) || "", vacationDetailPerson: "", toastMessage: "", toastUndo: false };
+    let entries = loadEntries();
+    let vacationQuotas = loadVacationQuotas();
+    let areaResponsibles = loadAreaResponsibles();
+    let lastAction = null;
+    let toastTimer;
+
+    function loadEntries() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        return Array.isArray(stored) ? stored.filter((entry) => entry && teams.includes(entry.team) && /^\d{4}-\d{2}-\d{2}$/.test(entry.date) && typeof entry.person === "string" && ["ferias", "home"].includes(entry.mode)).map((entry) => ({ ...entry, status: entry.status === "pendente" ? "pendente" : "aprovada" })) : [];
+      } catch {
+        return [];
+      }
+    }
+    function loadVacationQuotas() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(quotaStorageKey) || "{}");
+        if (!stored || typeof stored !== "object" || Array.isArray(stored)) return {};
+        return Object.fromEntries(Object.entries(stored).filter(([, value]) => Number.isInteger(value) && value >= 0 && value <= 366));
+      } catch {
+        return {};
+      }
+    }
+    function loadAreaResponsibles() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(responsibleStorageKey) || "{}");
+        if (!stored || typeof stored !== "object" || Array.isArray(stored)) return {};
+        return Object.fromEntries(Object.entries(stored).filter(([team, name]) => teams.includes(team) && typeof name === "string" && name.trim()));
+      } catch {
+        return {};
+      }
+    }
+    function saveEntries() { localStorage.setItem(storageKey, JSON.stringify(entries)); }
+    function saveVacationQuotas() { localStorage.setItem(quotaStorageKey, JSON.stringify(vacationQuotas)); }
+    function saveAreaResponsibles() { localStorage.setItem(responsibleStorageKey, JSON.stringify(areaResponsibles)); }
+    function isAreaResponsible(team, person) {
+      const responsible = areaResponsibles[team]?.trim().toLocaleLowerCase("pt-PT");
+      return Boolean(responsible && person.trim().toLocaleLowerCase("pt-PT") === responsible);
+    }
+    function quotaKey(team, year, person) { return JSON.stringify([team, year, person.toLocaleLowerCase("pt-PT")]); }
+    function getVacationQuota(team, year, person) {
+      const key = quotaKey(team, year, person);
+      return Object.prototype.hasOwnProperty.call(vacationQuotas, key) ? vacationQuotas[key] : undefined;
+    }
+    function showToast(message, undoable = false) {
+      state.toastMessage = message;
+      state.toastUndo = undoable;
+      if (!undoable) lastAction = null;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        state.toastMessage = "";
+        state.toastUndo = false;
+        lastAction = null;
+        render();
+      }, 5000);
+    }
+    function undoLastAction() {
+      if (!lastAction) return;
+      const { team, date, person, previous } = lastAction;
+      const normalizedPerson = person.toLocaleLowerCase("pt-PT");
+      const currentIndex = entries.findIndex((entry) => entry.team === team && entry.date === date && entry.person.toLocaleLowerCase("pt-PT") === normalizedPerson);
+      if (currentIndex >= 0) entries.splice(currentIndex, 1);
+      if (previous) entries.push(previous);
+      saveEntries();
+      lastAction = null;
+      showToast("Última marcação anulada.");
+      render();
+    }
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+    }
+    function currentModeLabel() { return state.mode === "ferias" ? "Férias" : "Home office"; }
+    function easterSunday(year) {
+      const metonicYear = year % 19;
+      const century = Math.floor(year / 100);
+      const yearOfCentury = year % 100;
+      const leapCenturyCorrection = Math.floor(century / 4);
+      const centuryRemainder = century % 4;
+      const lunarCorrection = Math.floor((century + 8) / 25);
+      const calendarCorrection = Math.floor((century - lunarCorrection + 1) / 3);
+      const epact = (19 * metonicYear + century - leapCenturyCorrection - calendarCorrection + 15) % 30;
+      const leapYearCorrection = Math.floor(yearOfCentury / 4);
+      const yearRemainder = yearOfCentury % 4;
+      const weekdayCorrection = (32 + 2 * centuryRemainder + 2 * leapYearCorrection - epact - yearRemainder) % 7;
+      const phaseCorrection = Math.floor((metonicYear + 11 * epact + 22 * weekdayCorrection) / 451);
+      const easterValue = epact + weekdayCorrection - 7 * phaseCorrection + 114;
+      return new Date(Date.UTC(year, Math.floor(easterValue / 31) - 1, (easterValue % 31) + 1));
+    }
+    function getHolidays(year) {
+      const holidays = new Map();
+      const addHoliday = (month, day, name, shortName = name) => {
+        const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        holidays.set(date, { name, shortName });
+      };
+      [
+        [1, 1, "Ano Novo"],
+        [4, 25, "Dia da Liberdade"],
+        [5, 1, "Dia do Trabalhador", "Trabalho"],
+        [6, 10, "Dia de Portugal"],
+        [8, 15, "Assunção de Nossa Senhora", "Assunção"],
+        [10, 5, "Implantação da República", "República"],
+        [11, 1, "Dia de Todos os Santos", "Todos Santos"],
+        [12, 1, "Restauração da Independência", "Restauração"],
+        [12, 8, "Imaculada Conceição", "Imaculada"],
+        [12, 25, "Natal"]
+      ].forEach(([month, day, name, shortName]) => addHoliday(month, day, name, shortName));
+      const easter = easterSunday(year);
+      const goodFriday = new Date(easter.getTime() - 2 * 86400000);
+      const corpusChristi = new Date(easter.getTime() + 60 * 86400000);
+      holidays.set(goodFriday.toISOString().slice(0, 10), { name: "Sexta-Feira Santa", shortName: "Sexta Santa" });
+      holidays.set(easter.toISOString().slice(0, 10), { name: "Domingo de Páscoa", shortName: "Páscoa" });
+      holidays.set(corpusChristi.toISOString().slice(0, 10), { name: "Corpo de Deus", shortName: "Corpo Deus" });
+      return holidays;
+    }
+    function isWorkingDate(date, holidays = getHolidays(Number(date.slice(0, 4)))) {
+      const [year, month, day] = date.split("-").map(Number);
+      const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+      return weekday !== 0 && weekday !== 6 && !holidays.has(date);
+    }
+    function countWorkingDays(records, year) {
+      const holidays = getHolidays(year);
+      return records.filter((entry) => isWorkingDate(entry.date, holidays)).length;
+    }
+    function matchingEntries(team, year, month, mode) {
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+      return entries.filter((entry) => entry.team === team && entry.date.startsWith(monthPrefix) && entry.mode === mode);
+    }
+    function confirmedEntries(records) { return records.filter((entry) => entry.status !== "pendente"); }
+    function pendingCount(records) { return records.filter((entry) => entry.status === "pendente").length; }
+    function countLabel(count) { return `${count} ${count === 1 ? "dia marcado" : "dias marcados"}`; }
+    function modeDayLabel(mode, count) {
+      if (mode === "ferias") return `${count} ${count === 1 ? "dia útil de férias marcado" : "dias úteis de férias marcados"}`;
+      return `${count} ${count === 1 ? "dia de home office marcado" : "dias de home office marcados"}`;
+    }
+    function personSummaryText() {
+      const person = state.person.trim();
+      if (!person) return "";
+      const normalizedPerson = person.toLocaleLowerCase("pt-PT");
+      const personEntries = matchingEntries(state.team, state.year, state.month, state.mode)
+        .filter((entry) => entry.person.toLocaleLowerCase("pt-PT") === normalizedPerson);
+      const confirmed = confirmedEntries(personEntries);
+      const count = state.mode === "ferias" ? countWorkingDays(confirmed, state.year) : confirmed.length;
+      const pending = pendingCount(personEntries);
+      return `${person} · ${modeDayLabel(state.mode, count)} confirmados em ${months[state.month]}${pending ? ` · ${pending} pendente(s) de aprovação` : ""}.`;
+    }
+    function header() {
+      return `<header class="topbar">
+        <div class="brand"><div class="brand-mark" aria-hidden="true">G</div><div><div class="brand-name">Gestão de Equipas</div><div class="brand-caption">Planeamento de disponibilidade</div></div></div>
+        <div class="mode-switch" role="group" aria-label="Tipo de marcação">
+          <button class="mode-button" data-mode="ferias" aria-pressed="${state.mode === "ferias"}">Férias</button>
+          <button class="mode-button" data-mode="home" aria-pressed="${state.mode === "home"}">Home office</button>
+        </div>
+      </header>`;
+    }
+    function teamPage() {
+      const modeEntries = entries.filter((entry) => entry.mode === state.mode);
+      return `<section class="surface">
+        <div class="page-intro"><p class="eyebrow">Marcação de Férias / Home Office</p><h1>Calendário DRCR</h1><p class="intro-copy">Escolha uma equipa para consultar os meses e registar os dias de ${state.mode === "ferias" ? "férias" : "trabalho remoto"}.</p></div>
+        <div class="team-grid">${teams.map((team) => {
+          const teamEntries = modeEntries.filter((entry) => entry.team === team && entry.date.startsWith(`${state.year}-`));
+          const count = state.mode === "ferias" ? countWorkingDays(confirmedEntries(teamEntries), state.year) : confirmedEntries(teamEntries).length;
+          const pending = pendingCount(teamEntries);
+          return `<button class="team-card" data-team="${team}"><span class="team-card-copy"><span class="team-icon" aria-hidden="true">${team.slice(0, 2).toUpperCase()}</span><span><span class="team-title">Equipa ${team}</span><span class="team-caption">${pending ? `${pending} pendente(s) · ` : ""}Ver os 12 meses</span></span></span><span class="team-count"><strong>${count}</strong><span>dias confirmados em ${state.year}</span></span><span class="arrow" aria-hidden="true">›</span></button>`;
+        }).join("")}</div>
+      </section>`;
+    }
+    function breadcrumbs(last) {
+      return `<nav class="breadcrumbs" aria-label="Navegação">
+        <button class="crumb" data-page="teams">Equipas</button><span class="crumb-separator">/</span>
+        ${state.page === "calendar" ? `<button class="crumb" data-page="months">Equipa ${escapeHTML(state.team)}</button><span class="crumb-separator">/</span>` : ""}
+        <button class="crumb" data-page="${state.page === "months" ? "months" : "calendar"}" disabled>${last}</button>
+      </nav>`;
+    }
+    function yearControl() {
+      return `<div class="year-control" aria-label="Ano"><button data-year="-1" aria-label="Ano anterior">‹</button><span class="year-value">${state.year}</span><button data-year="1" aria-label="Ano seguinte">›</button></div>`;
+    }
+    function monthStepper() {
+      return `<div class="month-stepper" aria-label="Navegação entre meses"><button data-month-offset="-1" aria-label="Mês anterior">‹</button><span class="month-stepper-label">MÊS</span><button data-month-offset="1" aria-label="Mês seguinte">›</button></div>`;
+    }
+    function monthPage() {
+      return `<section class="surface">
+        <div class="subhead">${breadcrumbs(`Equipa ${escapeHTML(state.team)}`)}<div class="subhead-row"><div><p class="eyebrow">${currentModeLabel()} · Equipa ${escapeHTML(state.team)}</p><h1>Escolha um mês</h1></div>${yearControl()}</div></div>
+        <div class="month-grid">${months.map((month, index) => {
+          const monthEntries = matchingEntries(state.team, state.year, index, state.mode);
+          const count = state.mode === "ferias" ? countWorkingDays(confirmedEntries(monthEntries), state.year) : confirmedEntries(monthEntries).length;
+          const pending = pendingCount(monthEntries);
+          return `<button class="month-card" data-month="${index}"><span class="month-name">${month}</span><span class="month-meta">${modeDayLabel(state.mode, count)}${pending ? ` · ${pending} pendente(s)` : ""}</span></button>`;
+        }).join("")}</div>
+        <div class="responsible-settings"><div class="person-field"><label for="area-responsible">Responsável pela Equipa ${escapeHTML(state.team)}</label><input id="area-responsible" type="text" maxlength="60" autocomplete="name" placeholder="Nome do responsável" value="${escapeHTML(areaResponsibles[state.team] || "")}"></div><button data-save-responsible="true">Guardar responsável</button></div>
+        ${yearRoster(state.team, state.year)}
+      </section>`;
+    }
+    function yearRoster(team, year) {
+      const colors = personColorMap(year);
+      const people = yearSummary(team, year);
+      const showingVacation = state.mode === "ferias";
+      const rows = people.map((person) => {
+          const color = colors.get(person.name.toLocaleLowerCase("pt-PT"));
+          const selected = person.name.toLocaleLowerCase("pt-PT") === state.person.trim().toLocaleLowerCase("pt-PT");
+          const vacationDetails = () => {
+            const quotaValue = person.quota === undefined ? "" : person.quota;
+            const remainingValue = person.remaining === null ? "—" : Math.abs(person.remaining);
+            const remainingLabel = person.remaining === null ? "definir quota" : person.remaining < 0 ? "acima da quota" : "restantes";
+            const remainingClass = person.remaining !== null && person.remaining < 0 ? " balance-over" : "";
+            return `<div class="vacation-balance"><span class="balance-stat"><strong>${person.vacationDays}</strong><small>confirmados${person.pendingVacation ? ` · ${person.pendingVacation} pendente(s)` : ""}</small></span><label class="quota-edit">Quota<input class="quota-input" type="number" min="0" max="366" step="1" inputmode="numeric" data-quota-team="${escapeHTML(team)}" data-quota-year="${year}" data-quota-person="${escapeHTML(person.name)}" aria-label="Quota anual de férias de ${escapeHTML(person.name)}" value="${quotaValue}" placeholder="Dias"></label><span class="balance-stat${remainingClass}"><strong>${remainingValue}</strong><small>${remainingLabel}</small></span></div>`;
+          };
+          const activeModeValue = showingVacation ? vacationDetails() : `<span class="balance-stat"><strong>${person.homeDays}</strong><small>confirmados${person.pendingHome ? ` · ${person.pendingHome} pendente(s)` : ""}</small></span>`;
+          return `<tr><td><button class="person-filter" data-vacation-person="${escapeHTML(person.name)}" aria-pressed="${selected}" aria-label="Ver férias anuais de ${escapeHTML(person.name)}"><span class="person-swatch" style="${personColorStyle(color)}" aria-hidden="true">${escapeHTML(initials(person.name))}</span><span>${escapeHTML(person.name)}</span></button></td><td>${activeModeValue}</td></tr>`;
+        }).join("");
+      const activeHeading = showingVacation ? "Férias · usados / quota / saldo" : "Home Office · dias marcados";
+      const note = showingVacation ? `<p class="roster-note">Os dias úteis excluem fins de semana e feriados nacionais. Defina a quota anual de cada pessoa no campo “Quota”.</p>` : "";
+      return `<section class="year-roster${showingVacation ? "" : " home-summary"}" aria-label="Resumo anual da equipa ${escapeHTML(team)}">
+        <div class="year-roster-heading"><h2>Marcações da equipa em ${year}</h2></div>
+        ${rows ? `<table><thead><tr><th scope="col">Colaborador</th><th scope="col">${activeHeading}</th></tr></thead><tbody>${rows}</tbody></table>${note}` : `<p class="roster-empty">Ainda não há marcações registadas nesta equipa em ${year}.</p>`}
+      </section>`;
+    }
+    function yearSummary(team, year) {
+      const yearEntries = entries.filter((entry) => entry.team === team && entry.date.startsWith(`${year}-`));
+      const people = new Map();
+      yearEntries.forEach((entry) => {
+        const key = entry.person.toLocaleLowerCase("pt-PT");
+        if (!people.has(key)) people.set(key, { name: entry.person, vacationEntries: [], pendingVacation: 0, homeDays: 0, pendingHome: 0 });
+        const person = people.get(key);
+        if (entry.mode === "ferias") {
+          if (entry.status === "pendente") person.pendingVacation += 1;
+          else person.vacationEntries.push(entry);
+        } else if (entry.status === "pendente") person.pendingHome += 1;
+        else person.homeDays += 1;
+      });
+      return [...people.values()]
+        .map((person) => {
+          const vacationDays = countWorkingDays(person.vacationEntries, year);
+          const quota = getVacationQuota(team, year, person.name);
+          return { name: person.name, vacationDays, pendingVacation: person.pendingVacation, quota, remaining: quota === undefined ? null : quota - vacationDays, homeDays: person.homeDays, pendingHome: person.pendingHome };
+        })
+        .sort((left, right) => left.name.localeCompare(right.name, "pt-PT"));
+    }
+    function dateKey(day) { return `${state.year}-${String(state.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
+    function initials(name) { return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase(); }
+    function personColorMap(year) {
+      const names = [...new Set(entries
+        .filter((entry) => entry.date.startsWith(`${year}-`))
+        .map((entry) => entry.person.toLocaleLowerCase("pt-PT")))]
+        .sort((left, right) => left.localeCompare(right, "pt-PT"));
+      const usedHues = new Set();
+      const colors = new Map();
+      names.forEach((name) => {
+        let hue = 0;
+        for (const character of name) hue = (hue * 31 + character.codePointAt(0)) % 360;
+        while (usedHues.has(hue)) hue = (hue + 137) % 360;
+        usedHues.add(hue);
+        colors.set(name, { background: `hsl(${hue} 72% 88%)`, foreground: `hsl(${hue} 52% 25%)` });
+      });
+      return colors;
+    }
+    function personColorStyle(color) {
+      return `--person-color:${color?.background || "#e0f1e8"};--person-ink:${color?.foreground || "#175642"}`;
+    }
+    function vacationMonthCalendar(team, year, month, person, color) {
+      const personKey = person.toLocaleLowerCase("pt-PT");
+      const vacationDates = new Set(entries.filter((entry) => entry.team === team && entry.mode === "ferias" && entry.status !== "pendente" && entry.person.toLocaleLowerCase("pt-PT") === personKey && entry.date.startsWith(`${year}-${String(month + 1).padStart(2, "0")}-`)).map((entry) => entry.date));
+      const holidays = getHolidays(year);
+      const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const cells = Array.from({ length: offset }, () => `<span class="mini-day empty" aria-hidden="true"></span>`);
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const weekday = (offset + day - 1) % 7;
+        const classes = ["mini-day", weekday > 4 ? "weekend" : "", holidays.has(date) ? "holiday" : "", vacationDates.has(date) ? "vacation" : ""].filter(Boolean).join(" ");
+        const holidayTitle = holidays.get(date)?.name || "";
+        const title = [holidayTitle, vacationDates.has(date) ? "Férias" : ""].filter(Boolean).join(" · ");
+        const accessibleLabel = [`${day} de ${months[month]}`, holidayTitle ? `Feriado nacional: ${holidayTitle}` : "", vacationDates.has(date) ? "Férias marcadas" : ""].filter(Boolean).join(", ");
+        cells.push(`<span class="${classes}" aria-label="${escapeHTML(accessibleLabel)}"${title ? ` title="${escapeHTML(title)}"` : ""}>${day}</span>`);
+      }
+      return `<section class="mini-month"><h3>${months[month]}</h3><div class="mini-weekdays">${["S", "T", "Q", "Q", "S", "S", "D"].map((day, index) => `<span class="mini-weekday" aria-label="${["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"][index]}">${day}</span>`).join("")}</div><div class="mini-days" style="${personColorStyle(color)}">${cells.join("")}</div></section>`;
+    }
+    function vacationDetailModal() {
+      if (!state.vacationDetailPerson) return "";
+      const person = state.vacationDetailPerson;
+      const personKey = person.toLocaleLowerCase("pt-PT");
+      const summary = yearSummary(state.team, state.year).find((item) => item.name.toLocaleLowerCase("pt-PT") === personKey);
+      const color = personColorMap(state.year).get(personKey);
+      const usedDays = summary?.vacationDays || 0;
+      const quota = summary?.quota;
+      const balance = quota === undefined ? "Quota não definida" : `${Math.max(0, quota - usedDays)} dias restantes de ${quota}`;
+      const monthsGrid = months.map((_, month) => vacationMonthCalendar(state.team, state.year, month, person, color)).join("");
+      return `<div class="dialog-backdrop" data-detail-backdrop><section class="vacation-dialog" role="dialog" aria-modal="true" aria-labelledby="vacation-detail-title"><div class="vacation-dialog-header"><div><h2 id="vacation-detail-title">Férias anuais · ${escapeHTML(person)} · ${state.year}</h2><p class="vacation-dialog-summary">${usedDays} ${usedDays === 1 ? "dia útil de férias marcado" : "dias úteis de férias marcados"} · ${balance}</p></div><button class="dialog-close" data-close-detail aria-label="Fechar resumo">×</button></div><div class="year-calendar-grid">${monthsGrid}</div><div class="vacation-dialog-legend"><span class="vacation-legend-swatch" style="${personColorStyle(color)}"></span>Dias de férias marcados<span class="holiday-legend-swatch" aria-hidden="true"></span>Feriado nacional</div></section></div>`;
+    }
+    function calendarDays() {
+      const firstDay = new Date(state.year, state.month, 1).getDay();
+      const offset = (firstDay + 6) % 7;
+      const totalDays = new Date(state.year, state.month + 1, 0).getDate();
+      const today = new Date();
+      const holidays = getHolidays(state.year);
+      const colors = personColorMap(state.year);
+      const selectedPerson = state.person.trim().toLocaleLowerCase("pt-PT");
+      const cells = Array.from({ length: offset }, () => `<div class="day-cell empty" aria-hidden="true"></div>`);
+      for (let day = 1; day <= totalDays; day += 1) {
+        const key = dateKey(day);
+        const marked = entries.filter((entry) => entry.team === state.team && entry.date === key && entry.mode === state.mode);
+        const vacationOverlap = new Set(entries.filter((entry) => entry.team === state.team && entry.date === key && entry.mode === "ferias").map((entry) => entry.person.toLocaleLowerCase("pt-PT"))).size;
+        const hasSelectedMark = selectedPerson && marked.some((entry) => entry.person.toLocaleLowerCase("pt-PT") === selectedPerson);
+        const holiday = holidays.get(key);
+        const isToday = today.getFullYear() === state.year && today.getMonth() === state.month && today.getDate() === day;
+        const isWeekend = (offset + day - 1) % 7 > 4;
+        const markedNames = marked.length ? marked.map((entry) => `${entry.person}${entry.status === "pendente" ? " (pendente)" : ""}`).join(", ") : "Sem marcações";
+        const overlapMessage = vacationOverlap > 1 ? `${vacationOverlap} colaboradores de férias` : "";
+        const title = [holiday?.name, overlapMessage, markedNames].filter(Boolean).join(" · ");
+        const chips = marked.slice(0, 3).map((entry) => {
+          const color = colors.get(entry.person.toLocaleLowerCase("pt-PT"));
+          const markerClass = `${entry.person.toLocaleLowerCase("pt-PT") === selectedPerson ? " marker-selected" : ""}${entry.status === "pendente" ? " pending" : ""}`;
+          return `<span class="marker${markerClass}" style="${personColorStyle(color)}" title="${escapeHTML(entry.person)}${entry.status === "pendente" ? " · Pendente de aprovação" : ""}">${escapeHTML(initials(entry.person))}</span>`;
+        }).join("");
+        const overflow = marked.length > 3 ? `<span class="marker" title="Mais ${marked.length - 3}">+${marked.length - 3}</span>` : "";
+        const holidayLabel = holiday ? `<span class="holiday-label" title="${escapeHTML(holiday.name)}">${escapeHTML(holiday.shortName)}</span>` : "";
+        const overlapBadge = vacationOverlap > 1 ? `<span class="overlap-badge" aria-label="${overlapMessage}" title="${overlapMessage}">${vacationOverlap}</span>` : "";
+        cells.push(`<button class="day-cell${marked.length ? " has-mark" : ""}${marked.some((entry) => entry.status === "pendente") ? " has-pending" : ""}${hasSelectedMark ? " has-selected-mark" : ""}${vacationOverlap > 1 ? " has-overlap" : ""}${isWeekend ? " weekend" : ""}${holiday ? " holiday" : ""}${isToday ? " today" : ""}" data-day="${day}" aria-label="${day} de ${months[state.month]}${holiday ? `, feriado: ${escapeHTML(holiday.name)}` : ""}${overlapMessage ? `, ${overlapMessage}` : ""}, ${escapeHTML(markedNames)}" title="${escapeHTML(title)}"><span class="day-number">${day}</span>${overlapBadge}${holidayLabel}<span class="day-markers">${chips}${overflow}</span></button>`);
+      }
+      return cells.join("");
+    }
+    function approvalPanel() {
+      const pending = entries.filter((entry) => entry.team === state.team && entry.date.startsWith(`${state.year}-${String(state.month + 1).padStart(2, "0")}-`) && entry.status === "pendente");
+      if (!pending.length) return "";
+      const responsible = areaResponsibles[state.team]?.trim();
+      const canApprove = isAreaResponsible(state.team, state.person);
+      const items = pending.map((entry, index) => {
+        const day = Number(entry.date.slice(-2));
+        return `<div class="approval-item"><span class="approval-item-copy">${escapeHTML(entry.person)} · ${day} de ${months[state.month]} · ${entry.mode === "ferias" ? "Férias" : "Home office"}<small>Pendente de aprovação</small></span><span class="approval-actions" data-approval-actions${canApprove ? "" : " hidden"}><button data-approve="${index}">Aprovar</button><button class="reject-button" data-reject="${index}">Rejeitar</button></span></div>`;
+      }).join("");
+      const note = responsible
+        ? canApprove
+          ? `Responsável desta equipa: ${escapeHTML(responsible)}.`
+          : `Só ${escapeHTML(responsible)} pode aprovar ou rejeitar. Indique esse nome no campo de identificação das marcações.`
+        : "Ainda não foi definido um responsável para esta equipa. Configure-o na página da equipa.";
+      return `<section class="approval-panel" aria-label="Aprovação de marcações"><h2>Marcações pendentes (${pending.length})</h2><p class="approval-note">${note} Esta validação é apenas uma demonstração local, não autentica utilizadores.</p><div class="approval-list">${items}</div></section>`;
+    }
+    function calendarPage() {
+      const monthEntries = matchingEntries(state.team, state.year, state.month, state.mode);
+      const confirmed = confirmedEntries(monthEntries);
+      const total = state.mode === "ferias" ? countWorkingDays(confirmed, state.year) : confirmed.length;
+      return `<section class="surface">
+        <div class="subhead">${breadcrumbs(`${months[state.month]} ${state.year}`)}<div class="subhead-row"><div><p class="eyebrow">Equipa ${escapeHTML(state.team)} · ${currentModeLabel()}</p><h1>${months[state.month]} ${state.year}</h1></div>${monthStepper()}</div></div>
+        <div class="calendar-tools"><div class="person-field"><label for="person-name">Nome para identificar as marcações</label><input id="person-name" list="known-people" type="text" maxlength="60" autocomplete="name" placeholder="Ex.: Ana Silva" value="${escapeHTML(state.person)}"><datalist id="known-people">${yearSummary(state.team, state.year).map((person) => `<option value="${escapeHTML(person.name)}"></option>`).join("")}</datalist></div><p class="mode-hint">As novas marcações ficam pendentes até à aprovação do responsável da equipa. Pode escolher um nome já registado.</p></div>
+        <p class="person-summary" id="person-summary" aria-live="polite">${escapeHTML(personSummaryText())}</p>
+        <div class="calendar-wrap"><div class="weekdays">${weekdays.map((day) => `<div class="weekday">${day}</div>`).join("")}</div><div class="days-grid">${calendarDays()}</div>
+          <div class="calendar-footer"><span class="legend"><span class="legend-dot"></span>${modeDayLabel(state.mode, total)} confirmados neste mês · pendentes assinalados a dourado</span><span class="calendar-legend"><span><i class="calendar-state-mark today"></i>Hoje</span><span><i class="calendar-state-mark state-weekend"></i>Fim de semana</span><span><i class="calendar-state-mark state-holiday"></i>Feriado nacional</span></span></div>
+        </div>
+        ${approvalPanel()}
+        ${yearRoster(state.team, state.year)}
+        <div class="storage-note">Dados guardados apenas neste navegador e dispositivo. Os nomes de responsável são uma validação demonstrativa: sem autenticação e servidor, qualquer utilizador deste navegador pode imitá-los.</div>
+      </section>`;
+    }
+    function render() {
+      app.className = `shell mode-${state.mode === "home" ? "home" : "vac"}`;
+      const page = state.page === "teams" ? teamPage() : state.page === "months" ? monthPage() : calendarPage();
+      const toast = state.toastMessage ? `<div class="toast" role="status" aria-live="polite"><span>${escapeHTML(state.toastMessage)}</span>${state.toastUndo && lastAction ? `<button data-undo="true">Anular</button>` : ""}</div>` : "";
+      app.innerHTML = `${header()}${page}${toast}${vacationDetailModal()}`;
+    }
+
+    app.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (event.target.matches("[data-detail-backdrop]")) {
+        state.vacationDetailPerson = "";
+        render();
+        return;
+      }
+      if (!button) return;
+      if (button.hasAttribute("data-close-detail")) {
+        state.vacationDetailPerson = "";
+        render();
+        return;
+      }
+      if (button.dataset.vacationPerson) {
+        state.vacationDetailPerson = button.dataset.vacationPerson;
+        state.person = button.dataset.vacationPerson;
+        localStorage.setItem(nameKey, state.person);
+        render();
+        document.querySelector(".dialog-close")?.focus();
+        return;
+      }
+      if (button.dataset.undo) {
+        undoLastAction();
+        return;
+      }
+      if (button.hasAttribute("data-save-responsible")) {
+        const input = document.querySelector("#area-responsible");
+        const name = input.value.trim();
+        if (name) areaResponsibles[state.team] = name;
+        else delete areaResponsibles[state.team];
+        saveAreaResponsibles();
+        showToast(name ? `Responsável da Equipa ${state.team} guardado.` : "Responsável removido.");
+        render();
+        return;
+      }
+      if (button.dataset.approve !== undefined || button.dataset.reject !== undefined) {
+        const pending = entries.filter((entry) => entry.team === state.team && entry.date.startsWith(`${state.year}-${String(state.month + 1).padStart(2, "0")}-`) && entry.status === "pendente");
+        const index = Number(button.dataset.approve ?? button.dataset.reject);
+        const entry = pending[index];
+        if (!entry) return;
+        if (!isAreaResponsible(state.team, state.person)) {
+          showToast(`Apenas o responsável atribuído à Equipa ${state.team} pode validar.`);
+          render();
+          return;
+        }
+        if (button.dataset.approve !== undefined) {
+          entry.status = "aprovada";
+          showToast("Marcação aprovada.");
+        } else {
+          entries.splice(entries.indexOf(entry), 1);
+          showToast("Marcação rejeitada.");
+        }
+        saveEntries();
+        render();
+        return;
+      }
+      if (button.dataset.mode) state.mode = button.dataset.mode;
+      if (button.dataset.team) { state.team = button.dataset.team; state.page = "months"; }
+      if (button.dataset.month !== undefined) { state.month = Number(button.dataset.month); state.page = "calendar"; }
+      if (button.dataset.monthOffset !== undefined) {
+        const adjacentMonth = new Date(state.year, state.month + Number(button.dataset.monthOffset), 1);
+        state.year = adjacentMonth.getFullYear();
+        state.month = adjacentMonth.getMonth();
+      }
+      if (button.dataset.page) state.page = button.dataset.page;
+      if (button.dataset.year) state.year += Number(button.dataset.year);
+      if (button.dataset.day) {
+        const person = state.person.trim();
+        if (!person) {
+          const input = document.querySelector("#person-name");
+          input.focus();
+          input.setCustomValidity("Indique o seu nome antes de marcar dias.");
+          input.reportValidity();
+          return;
+        }
+        const date = dateKey(Number(button.dataset.day));
+        const existingIndex = entries.findIndex((entry) => entry.team === state.team && entry.date === date && entry.person.toLocaleLowerCase("pt-PT") === person.toLocaleLowerCase("pt-PT"));
+        const previous = existingIndex >= 0 ? { ...entries[existingIndex] } : null;
+        const removed = existingIndex >= 0 && entries[existingIndex].mode === state.mode;
+        if (removed) entries.splice(existingIndex, 1);
+        else if (existingIndex >= 0) entries[existingIndex] = { ...entries[existingIndex], mode: state.mode, person, status: "pendente" };
+        else entries.push({ team: state.team, date, person, mode: state.mode, status: "pendente" });
+        saveEntries();
+        lastAction = { team: state.team, date, person, previous };
+        let message = removed ? "Marcação retirada." : "Marcação enviada para aprovação.";
+        if (state.mode === "ferias") {
+          const personYear = yearSummary(state.team, state.year).find((entry) => entry.name.toLocaleLowerCase("pt-PT") === person.toLocaleLowerCase("pt-PT"));
+          if (personYear?.quota !== undefined && personYear.vacationDays > personYear.quota) message = `Quota excedida em ${personYear.vacationDays - personYear.quota} dia(s).`;
+        }
+        showToast(message, true);
+      }
+      render();
+    });
+    app.addEventListener("input", (event) => {
+      if (event.target.id === "person-name") {
+        state.person = event.target.value;
+        localStorage.setItem(nameKey, state.person);
+        event.target.setCustomValidity("");
+        document.querySelector("#person-summary").textContent = personSummaryText();
+        const canApprove = isAreaResponsible(state.team, state.person);
+        document.querySelectorAll("[data-approval-actions]").forEach((actions) => { actions.hidden = !canApprove; });
+        const approvalNote = document.querySelector(".approval-note");
+        const responsible = areaResponsibles[state.team]?.trim();
+        if (approvalNote && responsible) {
+          approvalNote.textContent = `${canApprove ? `Responsável desta equipa: ${responsible}.` : `Só ${responsible} pode aprovar ou rejeitar. Indique esse nome no campo de identificação das marcações.`} Esta validação é apenas uma demonstração local, não autentica utilizadores.`;
+        }
+      }
+    });
+    app.addEventListener("change", (event) => {
+      const input = event.target;
+      if (input.classList.contains("quota-input")) {
+        const value = input.value.trim();
+        const key = quotaKey(input.dataset.quotaTeam, Number(input.dataset.quotaYear), input.dataset.quotaPerson);
+        if (value === "") delete vacationQuotas[key];
+        else {
+          const quota = Number(value);
+          if (!Number.isInteger(quota) || quota < 0 || quota > 366) {
+            input.setCustomValidity("Indique uma quota entre 0 e 366 dias.");
+            input.reportValidity();
+            return;
+          }
+          vacationQuotas[key] = quota;
+        }
+        saveVacationQuotas();
+        showToast("Quota de férias guardada.");
+        render();
+        return;
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.vacationDetailPerson) {
+        state.vacationDetailPerson = "";
+        render();
+      }
+    });
+    render();
+  </script>
+</body>
+</html>
