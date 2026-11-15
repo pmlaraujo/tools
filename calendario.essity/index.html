@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f4f4">
+  <title>Credit Management Calendar · essity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Open Sans", Arial, sans-serif;
+      color: #14293a;
+      background: #f4f4f4;
+      --ink: #14293a;
+      --muted: #6c7079;
+      --paper: #fff;
+      --canvas: #f4f4f4;
+      --line: #e7e8e8;
+      --accent: #1f7bc0;
+      --accent-dark: #055f9f;
+      --accent-soft: #eaf3fa;
+      --essity-pink: #f50082;
+      --essity-pink-dark: #d90073;
+      --heading: #00005a;
+      --vacation: #1f7bc0;
+      --vacation-soft: #eaf3fa;
+      --home: #f50082;
+      --home-soft: #ffebf5;
+      --market-cover: #753b8c;
+      --market-cover-soft: #f1e7f6;
+      --compensation: #a9d8f2;
+      --compensation-text: #00005a;
+      --compensation-soft: #e8f5fc;
+      --holiday: #a86e12;
+      --holiday-soft: #fff5dc;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100vh; margin: 0; background: var(--canvas); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #6d9df7; outline-offset: 2px; }
+    .shell { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 22px 0 42px; }
+    .shell.wide-calendar { width: min(1600px, calc(100% - 32px)); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .view-switch { display: flex; flex-wrap: wrap; gap: 7px; }
+    .view-button { padding: 9px 13px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--accent-dark); cursor: pointer; font-size: 12px; font-weight: 700; }
+    .view-button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .view-button:hover:not([aria-pressed="true"]) { border-color: #84b9dd; background: var(--accent-soft); }
+    .view-button[data-view="markets"] { border-color: var(--essity-pink); background: var(--essity-pink); color: #fff; }
+    .view-button[data-view="markets"]:hover { border-color: var(--essity-pink-dark); background: var(--essity-pink-dark); }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px 12px 12px 4px; background: var(--heading); color: #fff; font-size: 19px; font-weight: 800; }
+    .brand-name { font-size: 17px; font-weight: 750; }
+    .brand-caption { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .surface { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 12px 32px rgb(0 0 90 / 6%); }
+    .page-intro { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 12px; padding: 30px 34px 25px; border-bottom: 1px solid var(--line); }
+    .page-intro-copy { min-width: 0; }
+    .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 8px; color: var(--heading); font-size: clamp(25px, 4vw, 34px); line-height: 1.15; }
+    h2 { margin-bottom: 0; font-size: 21px; }
+    .intro-copy { max-width: 680px; margin-bottom: 0; color: var(--muted); line-height: 1.55; }
+    .team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 25px 34px 34px; }
+    .team-entry { min-width: 0; }
+    .team-country-list { margin: 8px 3px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .team-country-list strong { color: var(--ink); }
+    .team-year-button { display: inline-flex; align-items: center; margin: 8px 3px 0; padding: 7px 10px; border: 1px solid #b9d5e8; border-radius: 6px; background: var(--accent-soft); color: var(--accent-dark); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .team-year-button:hover { border-color: var(--accent); background: #dceefa; }
+    .team-card { display: flex; width: 100%; min-height: 126px; align-items: center; justify-content: space-between; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; text-align: left; cursor: pointer; transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
+    .team-card:hover { transform: translateY(-2px); border-color: #84b9dd; box-shadow: 0 8px 18px rgb(0 0 90 / 8%); }
+    .team-card-main { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .team-icon { display: grid; width: 46px; height: 46px; flex: 0 0 auto; place-items: center; border-radius: 11px; background: var(--accent-soft); color: var(--accent-dark); font-size: 15px; font-weight: 800; }
+    .team-name { display: block; font-size: 18px; font-weight: 750; }
+    .team-caption { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .team-count { flex: 0 0 auto; color: var(--muted); font-size: 11px; text-align: right; }
+    .team-count strong { display: block; color: var(--ink); font-size: 21px; }
+    .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 17px; color: var(--muted); font-size: 12px; }
+    .crumb { padding: 0; border: 0; background: none; color: var(--accent-dark); cursor: pointer; font-weight: 700; }
+    .crumb-separator { color: #99a6ae; }
+    .subhead { padding: 22px 30px 20px; border-bottom: 1px solid var(--line); }
+    .subhead-row { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+    .team-year-months-link { display: inline-block; margin-top: 12px; }
+    .calendar-subhead-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 18px; }
+    .subhead h1 { margin-bottom: 0; font-size: 27px; }
+    .year-control, .month-control { display: inline-flex; align-items: center; gap: 8px; padding: 4px; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+    .year-control button, .month-control button { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 19px; }
+    .year-control button:hover, .month-control button:hover { background: var(--canvas); }
+    .year-value { min-width: 54px; text-align: center; font-weight: 750; }
+    .month-control-label { min-width: 72px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; }
+    .month-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; padding: 25px 30px 30px; }
+    .month-card { display: flex; min-height: 96px; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; cursor: pointer; transition: border-color 140ms ease, background 140ms ease; }
+    .month-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .month-name { color: var(--accent-dark); font-size: 17px; font-weight: 750; }
+    .month-meta { color: var(--muted); font-size: 11px; }
+    .team-year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; padding: 24px 30px 30px; }
+    .team-year-month { display: block; width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); text-align: left; cursor: pointer; }
+    .team-year-month:hover, .team-year-month:focus-visible { border-color: #84b9dd; outline: 2px solid #84b9dd; outline-offset: 1px; }
+    .team-year-month-readonly { cursor: default; }
+    .team-year-month-readonly:hover { border-color: var(--line); outline: none; }
+    .team-year-month-title { display: block; margin-bottom: 4px; color: var(--accent-dark); font-size: 14px; font-weight: 750; }
+    .team-year-month-meta { display: block; margin-bottom: 9px; color: var(--muted); font-size: 10px; }
+    .market-team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 25px 34px 34px; }
+    .market-help { margin: 16px 30px 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .market-legacy-note { margin: 12px 30px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; background: #f8f8f8; color: var(--muted); font-size: 11px; }
+    .market-holiday-table { margin: 20px 30px 24px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .market-holiday-table h2 { margin: 0 0 10px; color: var(--heading); font-size: 16px; }
+    .market-holiday-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .market-holiday-table th, .market-holiday-table td { padding: 8px 7px; border-bottom: 1px solid var(--line); text-align: left; }
+    .market-holiday-table th { color: var(--muted); font-size: 11px; }
+    .market-holiday-table tbody tr:last-child td { border-bottom: 0; }
+    .market-holiday-table p { margin: 0; color: var(--muted); font-size: 12px; }
+    .market-holiday-table-status { margin-bottom: 9px !important; }
+    .market-holiday-legend-dot { color: var(--home); font-size: 14px; line-height: 1; }
+    .market-day-trigger { display: inline-grid; width: 24px; height: 26px; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 5px; background: #f1f1f1; color: var(--muted); cursor: pointer; font-size: 8px; font-weight: 800; }
+    .market-day-trigger:hover { border-color: var(--accent); }
+    .market-day-trigger[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .market-day-trigger.vacation { border-color: var(--vacation); background: var(--vacation); color: #fff; cursor: not-allowed; }
+    .market-day-more { margin-left: 1px; font-size: 7px; }
+    .market-day-more.covered { color: var(--market-cover); font-weight: 800; }
+    .employee-market-trigger { max-width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; font: inherit; font-weight: 700; text-align: left; }
+    .employee-market-trigger:hover { color: var(--accent-dark); text-decoration: underline; }
+    .employee-market-trigger:disabled { cursor: not-allowed; }
+    .market-day-display { display: inline-flex; min-height: 26px; align-items: center; justify-content: center; gap: 1px; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 12px; }
+    .market-day-display.vacation { width: 24px; border-radius: 5px; background: var(--vacation); color: #fff; cursor: not-allowed; font-size: 11px; font-weight: 800; }
+    .market-assignment-flag { display: inline-flex; min-width: 14px; height: 16px; align-items: center; justify-content: center; padding: 1px; border-radius: 3px; }
+    .market-assignment-flag.covered { background: var(--market-cover-soft); box-shadow: inset 0 0 0 1px var(--market-cover); }
+    .vacation-market-cell { overflow: visible; }
+    .market-cover-trigger { position: absolute; top: 0; right: 0; z-index: 1; display: grid; width: 15px; height: 15px; place-items: center; padding: 0; border: 1px solid #fff; border-radius: 50%; background: #dff3e8; color: #17653b; cursor: pointer; font-size: 10px; font-weight: 800; line-height: 1; }
+    .market-cover-trigger.missing { background: #fff0d6; color: #8a5d00; }
+    .markets-column { position: sticky; left: 188px; z-index: 1; width: 168px; min-width: 168px; max-width: 168px; padding: 5px !important; background: #fff; text-align: left !important; vertical-align: middle; }
+    .roster-table thead .markets-column { z-index: 5; background: #f4f4f4; }
+    .person-markets { display: flex; max-height: 48px; flex-wrap: wrap; gap: 3px; overflow-y: auto; }
+    .person-market-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-dark); font-size: 9px; white-space: nowrap; }
+    .person-markets-empty { color: var(--muted); font-size: 10px; }
+    .market-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 30px 22px; color: var(--muted); font-size: 11px; }
+    .market-code-chip { display: inline-grid; min-width: 24px; height: 20px; place-items: center; padding: 0 4px; border-radius: 4px; background: var(--accent); color: #fff; font-size: 8px; font-weight: 800; }
+    .market-cover-code-chip { background: var(--market-cover); }
+    .team-year-weekdays, .team-year-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+    .team-year-weekdays { margin-bottom: 3px; }
+    .team-year-weekday { color: var(--muted); font-size: 8px; font-weight: 800; text-align: center; }
+    .team-year-day { display: flex; min-width: 0; min-height: 38px; flex-direction: column; align-items: center; gap: 2px; padding: 2px 1px; border-radius: 4px; background: #fff; }
+    .team-year-day.empty { visibility: hidden; }
+    .team-year-day.weekend { background: #f1f1f1; color: var(--muted); }
+    .team-year-day.holiday { box-shadow: inset 0 0 0 1px #c2942f; }
+    .team-year-day-number { font-size: 9px; line-height: 1; }
+    .team-year-marks { display: flex; width: 100%; flex-wrap: wrap; justify-content: center; gap: 1px; }
+    .team-year-mark { display: inline-flex; min-width: 13px; align-items: center; justify-content: center; padding: 1px 2px; border-radius: 2px; font-size: 7px; font-weight: 800; line-height: 1; white-space: nowrap; }
+    .team-year-mark.vacation { background: var(--vacation); color: #fff; }
+    .team-year-mark.home { background: var(--home); color: #fff; }
+    .team-year-mark.compensation { background: var(--compensation); color: var(--compensation-text); }
+    .team-year-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 30px 24px; color: var(--muted); font-size: 11px; }
+    .team-year-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+    .month-roster { margin: 0 30px 28px; padding: 16px 18px; border-radius: 9px; background: #f4f4f4; color: var(--muted); font-size: 12px; }
+    .month-roster strong { color: var(--ink); }
+    .month-roster ul { display: flex; flex-wrap: wrap; gap: 7px 18px; margin: 10px 0 0; padding-left: 18px; }
+    .calendar-tools { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 18px; padding: 18px 30px; border-bottom: 1px solid var(--line); }
+    .employee-actions { display: flex; flex-wrap: nowrap; align-items: end; gap: 12px; }
+    .employee-form { display: flex; flex: 0 0 auto; flex-wrap: nowrap; align-items: end; gap: 9px; }
+    .employee-field label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 700; }
+    .employee-field input { width: min(290px, 70vw); height: 39px; padding: 0 11px; border: 1px solid #6e7781; border-radius: 7px; background: #fff; color: var(--ink); }
+    .primary-button { min-height: 39px; padding: 8px 13px; border: 0; border-radius: 7px; background: var(--accent); color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .primary-button:hover { background: var(--accent-dark); }
+    .instruction { max-width: 440px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .holiday-panel { display: flex; align-items: flex-start; gap: 9px; margin: 16px 30px 0; padding: 11px 13px; border: 1px solid #f0dfb8; border-radius: 8px; background: var(--holiday-soft); color: #76500f; font-size: 12px; line-height: 1.45; }
+    .holiday-panel strong { flex: 0 0 auto; }
+    .table-wrap { overflow: auto; margin: 16px 16px 23px; border: 1px solid var(--line); border-radius: 9px; }
+    .roster-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+    .roster-table th, .roster-table td { height: 42px; padding: 3px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; }
+    .roster-table thead th { position: sticky; z-index: 2; background: #f4f4f4; color: var(--muted); font-weight: 700; }
+    .roster-table thead .week-header th { top: 0; z-index: 4; height: 28px; background: #e9e9eb; font-size: 10px; }
+    .roster-table thead .day-header th { top: 28px; z-index: 3; height: 48px; }
+    .roster-table tr:last-child th, .roster-table tr:last-child td { border-bottom: 0; }
+    .roster-table th:last-child, .roster-table td:last-child { border-right: 0; }
+    .person-column { position: sticky; left: 0; z-index: 1; width: 188px; min-width: 188px; max-width: 188px; padding: 7px 10px !important; background: #fff; text-align: left !important; }
+    .roster-table thead .person-column { background: #f4f4f4; }
+    .roster-table thead .week-header .person-column { z-index: 6; }
+    .roster-table thead .day-header .person-column { z-index: 5; }
+    .week-group { white-space: nowrap; text-align: center !important; }
+    .person-name { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
+    .person-name > span { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .roster-table tbody tr.selected-person .person-column { background: var(--accent-soft); box-shadow: inset 4px 0 0 var(--accent); }
+    .roster-table tbody tr.selected-person .person-name > span { color: var(--accent-dark); }
+    .remove-person { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border: 1px solid #ead1d1; border-radius: 5px; background: #fff; color: #9c3d3d; cursor: pointer; font-size: 15px; }
+    .remove-person:hover { background: #fff0f0; }
+    .day-column { width: 32px; min-width: 32px; padding: 2px !important; }
+    .day-column small { display: block; font-size: 9px; font-weight: 500; }
+    .day-column.weekend, .mark-cell.weekend { background: #f1f1f1; }
+    .day-column.holiday, .mark-cell.holiday { background: #fff8e7; }
+    .mark-cell.market-holiday { box-shadow: inset 0 -3px 0 var(--home); }
+    .market-holiday-indicator { position: absolute; top: 1px; right: 2px; color: var(--home); font-size: 8px; line-height: 1; pointer-events: none; }
+    .holiday-dot { display: block; height: 5px; color: var(--holiday); font-size: 8px; line-height: 5px; }
+    .mark-cell { position: relative; width: 32px; min-width: 32px; background: #fff; }
+    .mark-trigger { display: inline-grid; width: 24px; height: 26px; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 5px; background: #f1f1f1; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .mark-trigger:hover:not(:disabled) { border-color: var(--accent); }
+    .mark-trigger.vacation[aria-pressed="true"] { border-color: var(--vacation); background: var(--vacation); color: #fff; }
+    .mark-trigger.home[aria-pressed="true"] { border-color: var(--home); background: var(--home); color: #fff; }
+    .mark-trigger.compensation[aria-pressed="true"] { border-color: var(--compensation); background: var(--compensation); color: var(--compensation-text); }
+    .mark-trigger:disabled { cursor: not-allowed; opacity: 1; }
+    .mark-trigger[draggable="true"] { cursor: grab; }
+    .mark-trigger.dragging { opacity: .45; }
+    .mark-trigger.drag-target { outline: 2px dashed var(--accent); outline-offset: 1px; }
+    .dialog-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgb(0 0 90 / 48%); }
+    .mark-dialog { width: min(440px, 100%); padding: 21px; border: 1px solid var(--line); border-radius: 13px; background: #fff; box-shadow: 0 18px 55px rgb(0 0 90 / 24%); }
+    .mark-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+    .mark-dialog h2 { margin: 0 0 5px; color: var(--heading); font-size: 21px; }
+    .mark-dialog-description, .current-mark { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .current-mark { margin: 0 0 12px; }
+    .dialog-close { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: #fff; cursor: pointer; font-size: 19px; }
+    .mark-choices { display: grid; gap: 8px; }
+    .mark-choice { display: flex; width: 100%; align-items: center; gap: 11px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; text-align: left; cursor: pointer; }
+    .market-choices { max-height: min(60vh, 500px); overflow-y: auto; padding-right: 4px; }
+    .market-choice .mark-choice-code { background: var(--accent-soft); color: var(--accent-dark); font-family: "Segoe UI Emoji", sans-serif; font-size: 17px; }
+    .market-choice[aria-pressed="true"] { border-color: var(--accent); background: #f8fbfc; }
+    .market-cover-dialog { width: min(520px, 100%); }
+    .market-cover-choices { display: grid; max-height: min(55vh, 430px); gap: 8px; overflow-y: auto; }
+    .market-cover-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 1fr); align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); font-size: 12px; }
+    .market-cover-row select { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font: inherit; }
+    .market-cover-row select:disabled { background: #f2f2f2; color: var(--muted); }
+    .mark-choice:hover:not(:disabled) { border-color: var(--accent); background: #f8fbfc; }
+    .mark-choice:disabled { cursor: not-allowed; opacity: .48; }
+    .mark-choice-code { display: grid; width: 29px; height: 29px; flex: 0 0 auto; place-items: center; border-radius: 6px; background: var(--vacation-soft); color: var(--vacation); font-size: 12px; font-weight: 800; }
+    .mark-choice.home-choice .mark-choice-code { background: var(--home-soft); color: var(--heading); }
+    .mark-choice.compensation-choice .mark-choice-code { background: var(--compensation-soft); color: var(--compensation-text); }
+    .mark-choice strong, .mark-choice small { display: block; }
+    .mark-choice strong { font-size: 13px; }
+    .mark-choice small { margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .mark-dialog-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+    .clear-mark { padding: 7px 0; border: 0; background: none; color: #9c3d3d; cursor: pointer; font-size: 12px; font-weight: 700; }
+    .clear-mark:disabled { color: #8c969c; cursor: not-allowed; }
+    .employee-year-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgb(0 0 90 / 48%); }
+    .employee-year-dialog { width: min(1100px, 100%); max-height: min(92vh, 950px); overflow: auto; padding: 23px; border: 1px solid var(--line); border-radius: 13px; background: #fff; box-shadow: 0 18px 55px rgb(0 0 90 / 24%); }
+    .employee-year-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .employee-year-header h2 { margin: 0 0 6px; color: var(--heading); font-size: 21px; }
+    .employee-year-summary { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .employee-year-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+    .employee-year-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; margin-top: 18px; }
+    .employee-mini-month { display: block; width: 100%; min-width: 0; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); text-align: left; cursor: pointer; }
+    .employee-mini-month:hover, .employee-mini-month:focus-visible { border-color: #84b9dd; outline: 2px solid #84b9dd; outline-offset: 1px; }
+    .employee-mini-title { display: block; margin-bottom: 7px; color: var(--accent-dark); font-size: 13px; font-weight: 750; }
+    .employee-mini-weekdays, .employee-mini-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+    .employee-mini-weekdays { margin-bottom: 3px; }
+    .employee-mini-weekday { color: var(--muted); font-size: 8px; font-weight: 800; text-align: center; }
+    .employee-mini-day { display: grid; aspect-ratio: 1; min-width: 0; place-items: center; border-radius: 3px; color: var(--ink); font-size: 9px; }
+    .employee-mini-day.empty { visibility: hidden; }
+    .employee-mini-day.weekend { background: #f1f1f1; color: var(--muted); }
+    .employee-mini-day.holiday { box-shadow: inset 0 0 0 1px #c2942f; }
+    .employee-mini-day.mark-vacation { background: var(--vacation); color: #fff; font-weight: 800; }
+    .employee-mini-day.mark-home { background: var(--home); color: #fff; font-weight: 800; }
+    .employee-mini-day.mark-compensation { background: var(--compensation); color: var(--compensation-text); font-weight: 800; }
+    .employee-year-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 16px; color: var(--muted); font-size: 11px; }
+    .employee-year-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+    .employee-year-holiday { width: 12px; height: 12px; border: 1px solid #c2942f; border-radius: 3px; }
+    .employee-year-link { min-width: 0; flex: 1; overflow: hidden; padding: 0; border: 0; background: none; color: var(--accent-dark); cursor: pointer; font: inherit; font-weight: 700; text-align: left; text-overflow: ellipsis; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+    .employee-year-link:hover { color: var(--accent); }
+    .annual-summary .employee-year-link { max-width: 100%; white-space: normal; }
+    .empty-roster { margin: 18px 30px 24px; padding: 21px; border: 1px dashed #cbd6dc; border-radius: 9px; color: var(--muted); font-size: 13px; text-align: center; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px 18px; margin: 0 30px 22px; color: var(--muted); font-size: 11px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-chip { display: inline-grid; width: 18px; height: 18px; place-items: center; border-radius: 4px; background: var(--vacation); color: #fff; font-size: 10px; font-weight: 800; }
+    .legend-chip.home-chip { background: var(--home); color: #fff; }
+    .legend-chip.compensation-chip { background: var(--compensation); color: var(--compensation-text); }
+    .legend-chip.holiday-chip { border: 1px solid #e6c982; background: var(--holiday-soft); color: var(--holiday); }
+    .annual-summary { overflow-x: auto; margin: 0 30px 24px; padding: 17px 18px; border: 1px solid var(--line); border-radius: 9px; background: #f8f8f8; }
+    .annual-summary h2 { margin-bottom: 10px; color: var(--accent-dark); font-size: 17px; }
+    .annual-summary table { width: 100%; min-width: 650px; border-collapse: collapse; table-layout: fixed; }
+    .annual-summary th, .annual-summary td { padding: 9px 7px; border-bottom: 1px solid var(--line); text-align: center; overflow-wrap: anywhere; }
+    .annual-summary th { color: var(--muted); font-size: 11px; }
+    .annual-summary td { font-size: 13px; }
+    .annual-summary th:first-child, .annual-summary td:first-child { width: 42%; text-align: left; }
+    .vacation-quota-input { width: 72px; max-width: 100%; padding: 5px 6px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); font-size: 12px; }
+    .vacation-quota-over { color: #a12727; font-weight: 700; }
+    .vacation-quota-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+    .annual-summary tbody tr:last-child td { border-bottom: 0; }
+    .storage-note { padding: 12px 30px; border-top: 1px solid var(--line); background: #f8f8f8; color: var(--muted); font-size: 11px; }
+    .storage-warning { margin: 0 30px 18px; padding: 11px 13px; border: 1px solid #e3b8b8; border-radius: 7px; background: #fff0f0; color: #8c3030; font-size: 12px; }
+    @media (max-width: 800px) {
+      .team-grid { grid-template-columns: 1fr; }
+      .market-team-grid { grid-template-columns: 1fr; }
+      .page-intro { grid-template-columns: 1fr; }
+      .month-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .team-year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .employee-year-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .calendar-tools { align-items: flex-start; flex-direction: column; }
+      .calendar-subhead-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .calendar-subhead-row > :first-child { grid-column: 1 / -1; }
+      .calendar-subhead-row > .employee-actions { grid-column: 1; }
+      .calendar-subhead-row > .month-control { grid-column: 2; }
+    }
+    @media (max-width: 1000px) {
+      .calendar-subhead-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .calendar-subhead-row > :first-child { grid-column: 1 / -1; }
+      .calendar-subhead-row > .employee-actions { grid-column: 1; }
+      .calendar-subhead-row > .month-control { grid-column: 2; }
+      .employee-field input { width: min(180px, 60vw); }
+    }
+    @media (max-width: 700px) {
+      .calendar-subhead-row { grid-template-columns: 1fr; }
+      .calendar-subhead-row > :first-child, .calendar-subhead-row > .employee-actions, .calendar-subhead-row > .month-control { grid-column: 1; grid-row: auto; }
+      .employee-actions { flex-wrap: wrap; }
+    }
+    @media (max-width: 520px) {
+      .shell { width: calc(100% - 20px); padding-top: 12px; }
+      .shell.wide-calendar { width: calc(100% - 20px); }
+      .topbar { align-items: stretch; flex-direction: column; }
+      .view-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .view-button { padding: 8px 6px; }
+      .page-intro { padding: 24px 18px 20px; }
+      .team-grid, .month-grid { padding-right: 16px; padding-left: 16px; }
+      .market-team-grid { padding-right: 16px; padding-left: 16px; }
+      .month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .team-year-grid { grid-template-columns: 1fr; padding: 18px 16px 24px; }
+      .team-year-legend { margin-right: 16px; margin-left: 16px; }
+      .subhead, .calendar-tools { padding-right: 16px; padding-left: 16px; }
+      .market-help, .market-legacy-note { margin-right: 16px; margin-left: 16px; }
+      .market-legend { margin-right: 16px; margin-left: 16px; }
+      .subhead-row { align-items: flex-start; flex-direction: column; }
+      .calendar-subhead-row { grid-template-columns: 1fr; }
+      .calendar-subhead-row > :first-child, .calendar-subhead-row > .employee-actions, .calendar-subhead-row > .month-control { grid-column: 1; grid-row: auto; }
+      .table-wrap { margin-right: 12px; margin-left: 12px; }
+      .employee-year-dialog { padding: 16px 12px; }
+      .employee-year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .employee-mini-month { padding: 7px; }
+      .employee-year-controls { gap: 5px; }
+      .employee-year-controls .year-control { gap: 3px; }
+      .person-column { width: 150px; min-width: 150px; max-width: 150px; }
+      .markets-column { left: 150px; width: 132px; min-width: 132px; max-width: 132px; }
+      .holiday-panel, .empty-roster, .annual-summary { margin-right: 12px; margin-left: 12px; }
+      .annual-summary { padding: 14px 10px; }
+      .legend { margin-right: 12px; margin-left: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell" id="app" aria-live="polite"></main>
+  <script>
+    const teams = [
+      { id: "management", name: "Management" },
+      {
+        id: "carla",
+        name: "Carla's Team",
+        countries: ["Portugal", "Spain", "United Kingdom", "Ireland", "Italy", "Belgium", "Netherlands", "Mexico", "Central America", "North America", "Canada"]
+      },
+      {
+        id: "angela",
+        name: "Angela's Team",
+        countries: ["Germany", "France", "Austria", "Switzerland", "Hungary", "Poland", "Czechia", "Slovakia", "Greece", "Romania", "Sweden", "Denmark", "Norway", "Finland", "Estonia", "Lithuania", "Latvia", "Dubai"]
+      }
+    ];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const markTypes = {
+      vacation: { code: "V", name: "Vacation", description: "Annual leave" },
+      home: { code: "H", name: "Home Office", description: "Work from home" },
+      compensation: { code: "C", name: "Compensation", description: "Compensatory time off" }
+    };
+    const marketFlagCodes = {
+      Portugal: "PT", Spain: "ES", "United Kingdom": "GB", Ireland: "IE", Italy: "IT",
+      Belgium: "BE", Netherlands: "NL", Mexico: "MX", Canada: "CA", Germany: "DE",
+      France: "FR", Austria: "AT", Switzerland: "CH", Hungary: "HU", Poland: "PL",
+      Czechia: "CZ", Slovakia: "SK", Greece: "GR", Romania: "RO", Sweden: "SE",
+      Denmark: "DK", Norway: "NO", Finland: "FI", Estonia: "EE", Lithuania: "LT",
+      Latvia: "LV", Dubai: "AE"
+    };
+    const holidayCountryNames = {
+      PT: "Portugal", ES: "Spain", GB: "United Kingdom", IE: "Ireland", IT: "Italy",
+      BE: "Belgium", NL: "Netherlands", MX: "Mexico", CA: "Canada", DE: "Germany",
+      FR: "France", AT: "Austria", CH: "Switzerland", HU: "Hungary", PL: "Poland",
+      CZ: "Czechia", SK: "Slovakia", GR: "Greece", RO: "Romania", SE: "Sweden",
+      DK: "Denmark", NO: "Norway", FI: "Finland", EE: "Estonia", LT: "Lithuania",
+      LV: "Latvia", AE: "United Arab Emirates", US: "United States", BZ: "Belize",
+      CR: "Costa Rica", SV: "El Salvador", GT: "Guatemala", HN: "Honduras",
+      NI: "Nicaragua", PA: "Panama"
+    };
+    const storageKey = "calendario-essity-data-v1";
+    const app = document.querySelector("#app");
+    const state = { view: "availability", page: "teams", team: "", year: new Date().getFullYear(), month: new Date().getMonth(), pendingMark: null, pendingMarket: null, pendingMarketCover: null, dragMark: null, annualPerson: "", selectedEmployee: "", employeeInput: "" };
+    let storageError = "";
+    let storageUsable = true;
+    let data = loadData();
+    const marketHolidayCache = new Map();
+    const marketHolidayRequests = new Map();
+    const marketHolidayViews = new Map();
+
+    function emptyData() {
+      return { employees: Object.fromEntries(teams.map((team) => [team.id, []])), marks: [], marketAssignments: [], marketPlans: [], marketCovers: [], marketMarks: [], vacationQuotas: [] };
+    }
+    function normalizeName(name) {
+      return name.trim().toLocaleLowerCase("pt-PT");
+    }
+    function validDate(date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+      const [year, month, day] = date.split("-").map(Number);
+      const parsed = new Date(Date.UTC(year, month - 1, day));
+      return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+    }
+    function loadData() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (!stored) return emptyData();
+        const parsed = JSON.parse(stored);
+        if (!parsed || typeof parsed !== "object" || !parsed.employees || !Array.isArray(parsed.marks)) {
+          throw new Error("Invalid data format.");
+        }
+        const employees = Object.fromEntries(teams.map((team) => {
+          const names = Array.isArray(parsed.employees[team.id]) ? parsed.employees[team.id] : [];
+          const unique = new Map();
+          names.forEach((name) => {
+            if (typeof name !== "string") return;
+            const cleaned = name.trim().slice(0, 60);
+            if (cleaned && !unique.has(normalizeName(cleaned))) unique.set(normalizeName(cleaned), cleaned);
+          });
+          return [team.id, [...unique.values()]];
+        }));
+        const marks = parsed.marks.filter((mark) =>
+          mark && teams.some((team) => team.id === mark.team) &&
+          employees[mark.team].some((name) => normalizeName(name) === normalizeName(mark.person || "")) &&
+          validDate(mark.date) && Object.hasOwn(markTypes, mark.kind)
+        );
+        const marketAssignments = [];
+        const assignmentKeys = new Set();
+        if (Array.isArray(parsed.marketAssignments)) {
+          parsed.marketAssignments.forEach((assignment) => {
+            const team = teams.find((item) => item.id === assignment?.team && item.countries?.includes(assignment.market));
+            const year = Number(assignment?.year);
+            const month = Number(assignment?.month);
+            if (!team || !Number.isInteger(year) || year < 1 || year > 9999 || !Number.isInteger(month) || month < 0 || month > 11) return;
+            const person = employees[team.id].find((name) => normalizeName(name) === normalizeName(assignment.person || ""));
+            if (!person) return;
+            const key = `${team.id}|${year}|${month}|${normalizeName(person)}|${assignment.market}`;
+            if (assignmentKeys.has(key)) return;
+            assignmentKeys.add(key);
+            marketAssignments.push({ team: team.id, year, month, person, market: assignment.market });
+          });
+        }
+        const marketPlans = [];
+        const marketPlanKeys = new Set();
+        if (Array.isArray(parsed.marketPlans)) {
+          parsed.marketPlans.forEach((plan) => {
+            const team = teams.find((item) => item.id === plan?.team && item.countries?.length);
+            const year = Number(plan?.year);
+            const month = Number(plan?.month);
+            if (!team || !Number.isInteger(year) || year < 1 || year > 9999 ||
+                !Number.isInteger(month) || month < 0 || month > 11) return;
+            const person = employees[team.id].find((name) => normalizeName(name) === normalizeName(plan.person || ""));
+            if (!person) return;
+            const key = `${team.id}|${year}|${month}|${normalizeName(person)}`;
+            if (marketPlanKeys.has(key)) return;
+            marketPlanKeys.add(key);
+            marketPlans.push({ team: team.id, year, month, person });
+          });
+        }
+        const marketMarks = [];
+        const marketMarkKeys = new Set();
+        if (Array.isArray(parsed.marketMarks)) {
+          parsed.marketMarks.forEach((entry) => {
+            const team = teams.find((item) => item.id === entry?.team && item.countries?.includes(entry.market));
+            if (!team || !validDate(entry.date)) return;
+            const person = employees[team.id].find((name) => normalizeName(name) === normalizeName(entry.person || ""));
+            if (!person) return;
+            const key = `${team.id}|${entry.date}|${normalizeName(person)}|${entry.market}`;
+            if (marketMarkKeys.has(key)) return;
+            marketMarkKeys.add(key);
+            marketMarks.push({ team: team.id, person, date: entry.date, market: entry.market });
+          });
+        }
+        const marketCovers = [];
+        const marketCoverKeys = new Set();
+        if (Array.isArray(parsed.marketCovers)) {
+          parsed.marketCovers.forEach((cover) => {
+            const team = teams.find((item) => item.id === cover?.team && item.countries?.includes(cover.market));
+            if (!team || !validDate(cover.date)) return;
+            const owner = employees[team.id].find((name) => normalizeName(name) === normalizeName(cover.owner || ""));
+            const person = employees[team.id].find((name) => normalizeName(name) === normalizeName(cover.person || ""));
+            if (!owner || !person || normalizeName(owner) === normalizeName(person)) return;
+            const key = `${team.id}|${cover.date}|${normalizeName(owner)}|${cover.market}`;
+            if (marketCoverKeys.has(key)) return;
+            marketCoverKeys.add(key);
+            marketCovers.push({ team: team.id, date: cover.date, owner, market: cover.market, person });
+          });
+        }
+        const vacationQuotas = [];
+        const vacationQuotaKeys = new Set();
+        if (Array.isArray(parsed.vacationQuotas)) {
+          parsed.vacationQuotas.forEach((quota) => {
+            const team = teams.find((item) => item.id === quota?.team);
+            const year = Number(quota?.year);
+            const days = Number(quota?.days);
+            if (!team || !Number.isInteger(year) || year < 1 || year > 9999 ||
+                !Number.isInteger(days) || days < 0 || days > 366) return;
+            const person = employees[team.id].find((name) => normalizeName(name) === normalizeName(quota.person || ""));
+            if (!person) return;
+            const key = `${team.id}|${year}|${normalizeName(person)}`;
+            if (vacationQuotaKeys.has(key)) return;
+            vacationQuotaKeys.add(key);
+            vacationQuotas.push({ team: team.id, year, person, days });
+          });
+        }
+        return { employees, marks, marketAssignments, marketPlans, marketCovers, marketMarks, vacationQuotas };
+      } catch (error) {
+        console.error("Could not load Credit Management Calendar data.", error);
+        storageUsable = false;
+        storageError = "Saved data could not be read. The calendar is read-only to avoid overwriting it.";
+        return emptyData();
+      }
+    }
+    function saveData(nextData) {
+      if (!storageUsable) return false;
+      try {
+        const persistedData = {
+          ...nextData,
+          marketAssignments: nextData.marketAssignments ?? data.marketAssignments ?? [],
+          marketPlans: nextData.marketPlans ?? data.marketPlans ?? [],
+          marketCovers: nextData.marketCovers ?? data.marketCovers ?? [],
+          marketMarks: nextData.marketMarks ?? data.marketMarks ?? [],
+          vacationQuotas: nextData.vacationQuotas ?? data.vacationQuotas ?? []
+        };
+        localStorage.setItem(storageKey, JSON.stringify(persistedData));
+        data = persistedData;
+        storageError = "";
+        return true;
+      } catch (error) {
+        console.error("Could not save Credit Management Calendar data.", error);
+        storageUsable = false;
+        storageError = "Changes could not be saved in this browser. Check the browser's storage permissions.";
+        return false;
+      }
+    }
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[character]);
+    }
+    function teamById(id) { return teams.find((team) => team.id === id); }
+    function initials(name) { return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase(); }
+    function flagEmoji(code) {
+      if (!/^[A-Z]{2}$/.test(code)) return "🌎";
+      return [...code].map((letter) => String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65)).join("");
+    }
+    function marketFlag(market) {
+      return market === "Central America" || market === "North America"
+        ? "🌎"
+        : flagEmoji(marketFlagCodes[market] || "");
+    }
+    function countriesForMarket(market) {
+      if (market === "North America") return [{ code: "US", name: holidayCountryNames.US }];
+      if (market === "Central America") {
+        return ["BZ", "CR", "SV", "GT", "HN", "NI", "PA"].map((code) => ({ code, name: holidayCountryNames[code] }));
+      }
+      const code = marketFlagCodes[market];
+      return code ? [{ code, name: holidayCountryNames[code] || market }] : [];
+    }
+    function dateKey(year, month, day) { return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`; }
+    function easterSunday(year) {
+      const a = year % 19;
+      const b = Math.floor(year / 100);
+      const c = year % 100;
+      const d = Math.floor(b / 4);
+      const e = b % 4;
+      const f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3);
+      const h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4);
+      const k = c % 4;
+      const l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const m = Math.floor((a + 11 * h + 22 * l) / 451);
+      const value = h + l - 7 * m + 114;
+      return new Date(Date.UTC(year, Math.floor(value / 31) - 1, (value % 31) + 1));
+    }
+    function getHolidays(year) {
+      const holidays = new Map();
+      const addHoliday = (month, day, name) => holidays.set(dateKey(year, month - 1, day), name);
+      [
+        [1, 1, "New Year's Day"],
+        [4, 25, "Freedom Day"],
+        [5, 1, "Labour Day"],
+        [6, 10, "Portugal Day"],
+        [8, 15, "Assumption of Mary"],
+        [10, 5, "Republic Day"],
+        [11, 1, "All Saints' Day"],
+        [12, 1, "Restoration of Independence"],
+        [12, 8, "Immaculate Conception"],
+        [12, 25, "Christmas Day"]
+      ].forEach(([month, day, name]) => addHoliday(month, day, name));
+      const easter = easterSunday(year);
+      const movable = [
+        [new Date(easter.getTime() - 2 * 86400000), "Good Friday"],
+        [easter, "Easter Sunday"],
+        [new Date(easter.getTime() + 60 * 86400000), "Corpus Christi"]
+      ];
+      movable.forEach(([date, name]) => holidays.set(date.toISOString().slice(0, 10), name));
+      return holidays;
+    }
+    function getUaeHolidays(year) {
+      const holidays = new Map();
+      const addHoliday = (month, day, name) => holidays.set(dateKey(year, month - 1, day), name);
+      addHoliday(1, 1, "New Year's Day");
+      addHoliday(12, 2, "UAE National Day");
+      addHoliday(12, 3, "UAE National Day holiday");
+      const islamicDate = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", {
+        day: "numeric", month: "numeric", timeZone: "UTC"
+      });
+      for (let dayOfYear = 0; dayOfYear < (isLeapYear(year) ? 366 : 365); dayOfYear += 1) {
+        const date = new Date(Date.UTC(year, 0, dayOfYear + 1));
+        const parts = Object.fromEntries(islamicDate.formatToParts(date).map((part) => [part.type, part.value]));
+        const day = Number(parts.day);
+        const month = Number(parts.month);
+        if (month === 10 && day <= 3) holidays.set(date.toISOString().slice(0, 10), "Eid Al Fitr (estimated)");
+        if (month === 12 && day === 9) holidays.set(date.toISOString().slice(0, 10), "Arafah Day (estimated)");
+        if (month === 12 && day >= 10 && day <= 12) holidays.set(date.toISOString().slice(0, 10), "Eid Al Adha (estimated)");
+        if (month === 1 && day === 1) holidays.set(date.toISOString().slice(0, 10), "Islamic New Year (estimated)");
+        if (month === 3 && day === 12) holidays.set(date.toISOString().slice(0, 10), "Prophet's Birthday (estimated)");
+      }
+      return holidays;
+    }
+    async function fetchCountryHolidays(country, year) {
+      const key = `${country.code}:${year}`;
+      if (marketHolidayCache.has(key)) return marketHolidayCache.get(key);
+      if (marketHolidayRequests.has(key)) return marketHolidayRequests.get(key);
+      const request = (async () => {
+        if (country.code === "AE") return getUaeHolidays(year);
+        const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country.code}`);
+        if (!response.ok) throw new Error(`${country.name} holiday service returned HTTP ${response.status}`);
+        const holidays = await response.json();
+        if (!Array.isArray(holidays)) throw new Error(`${country.name} holiday service returned invalid data`);
+        const results = new Map();
+        holidays.filter((holiday) => holiday.global === true && holiday.types?.includes("Public")).forEach((holiday) => {
+          results.set(holiday.date, `${country.name}: ${holiday.localName || holiday.name}`);
+        });
+        marketHolidayCache.set(key, results);
+        return results;
+      })();
+      marketHolidayRequests.set(key, request);
+      try {
+        const result = await request;
+        if (country.code === "AE") marketHolidayCache.set(key, result);
+        return result;
+      } finally {
+        marketHolidayRequests.delete(key);
+      }
+    }
+    function assignedMarketHolidayView(teamId, year, month) {
+      const key = `${teamId}:${year}:${month}`;
+      if (marketHolidayViews.has(key)) return marketHolidayViews.get(key);
+      const assignments = new Map();
+      const countryCodes = new Set();
+      const marketNames = new Set();
+      const addCountryCodes = (market) => {
+        marketNames.add(market);
+        countriesForMarket(market).forEach(({ code }) => countryCodes.add(code));
+      };
+      data.employees[teamId].forEach((person) => {
+        marketsForPersonMonth(teamId, year, month, person).forEach(addCountryCodes);
+      });
+      dailyMarketMarksForMonth(teamId, year, month).forEach((mark) => {
+        const personKey = normalizeName(mark.person);
+        addCountryCodes(mark.market);
+        const assignmentKey = `${personKey}|${mark.date}`;
+        if (!assignments.has(assignmentKey)) assignments.set(assignmentKey, { personKey, date: mark.date, codes: new Set() });
+        countriesForMarket(mark.market).forEach(({ code }) => {
+          assignments.get(assignmentKey).codes.add(code);
+        });
+      });
+      const view = { byDailyPerson: new Map(), byCountry: new Map(), loading: countryCodes.size > 0, errors: [], countryNames: countryCodes, marketNames };
+      marketHolidayViews.set(key, view);
+      if (!countryCodes.size) return view;
+      const countries = [...countryCodes].map((code) => ({ code, name: holidayCountryNames[code] || code }));
+      Promise.all(countries.map(async (country) => {
+        try {
+          return [country.code, await fetchCountryHolidays(country, year)];
+        } catch (error) {
+          view.errors.push(`${country.name}: ${error.message}`);
+          return [country.code, new Map()];
+        }
+      })).then((countryResults) => {
+        const holidaysByCode = new Map(countryResults);
+        countryCodes.forEach((code) => view.byCountry.set(code, holidaysByCode.get(code) || new Map()));
+        assignments.forEach(({ personKey, date, codes }) => {
+          const names = [...codes].map((code) => {
+            const name = holidaysByCode.get(code)?.get(date);
+            if (!name) return "";
+            const countryName = holidayCountryNames[code] || code;
+            const prefix = `${countryName}: `;
+            return name.startsWith(prefix) ? name : `${prefix}${name}`;
+          }).filter(Boolean);
+          if (names.length) {
+            if (!view.byDailyPerson.has(personKey)) view.byDailyPerson.set(personKey, new Map());
+            view.byDailyPerson.get(personKey).set(date, names);
+          }
+        });
+        view.loading = false;
+        if (state.page === "market-distribution" && state.team === teamId &&
+            state.year === year && state.month === month) render();
+      });
+      return view;
+    }
+    function invalidateMarketHolidayView(teamId, date) {
+      const [year, month] = date.split("-").map(Number);
+      marketHolidayViews.delete(`${teamId}:${year}:${month - 1}`);
+    }
+    function isLeapYear(year) { return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0); }
+    function monthDays(year, month) { return new Date(Date.UTC(year, month + 1, 0)).getUTCDate(); }
+    function weekdayIndex(year, month, day) { return (new Date(Date.UTC(year, month, day)).getUTCDay() + 6) % 7; }
+    function isWeekend(year, month, day) { return weekdayIndex(year, month, day) > 4; }
+    function isoWeek(year, month, day) {
+      const date = new Date(Date.UTC(year, month, day));
+      const isoDay = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - isoDay);
+      const isoYear = date.getUTCFullYear();
+      const firstDay = new Date(Date.UTC(isoYear, 0, 1));
+      const number = Math.ceil(((date - firstDay) / 86400000 + 1) / 7);
+      return { year: isoYear, number };
+    }
+    function marksForMonth(teamId, year, month) {
+      const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+      return data.marks.filter((mark) => mark.team === teamId && mark.date.startsWith(prefix));
+    }
+    function hasVacationMark(teamId, person, date) {
+      return data.marks.some((mark) =>
+        mark.team === teamId && mark.date === date && mark.kind === "vacation" &&
+        normalizeName(mark.person) === normalizeName(person)
+      );
+    }
+    function vacationQuotaFor(teamId, year, person) {
+      return data.vacationQuotas.find((quota) =>
+        quota.team === teamId && quota.year === year && normalizeName(quota.person) === normalizeName(person)
+      )?.days;
+    }
+    function countsTowardVacationQuota(date, holidays) {
+      const [year, month, day] = date.split("-").map(Number);
+      return !isWeekend(year, month - 1, day) && !holidays.has(date);
+    }
+    function vacationQuotaUsed(teamId, year, person) {
+      const holidays = getHolidays(year);
+      return new Set(data.marks.filter((mark) =>
+        mark.team === teamId && mark.kind === "vacation" && mark.date.startsWith(`${year}-`) &&
+        normalizeName(mark.person) === normalizeName(person) && countsTowardVacationQuota(mark.date, holidays)
+      ).map((mark) => mark.date)).size;
+    }
+    function marketsForPersonMonth(teamId, year, month, person) {
+      const personKey = normalizeName(person);
+      const hasPlan = data.marketPlans.some((plan) =>
+        plan.team === teamId && plan.year === year && plan.month === month &&
+        normalizeName(plan.person) === personKey
+      );
+      if (hasPlan) {
+        return new Set(data.marketAssignments.filter((assignment) =>
+          assignment.team === teamId && assignment.year === year && assignment.month === month &&
+          normalizeName(assignment.person) === personKey
+        ).map((assignment) => assignment.market));
+      }
+      const previousMonthlyMarkets = data.marketAssignments.filter((assignment) =>
+        assignment.team === teamId && assignment.year === year && assignment.month === month &&
+        normalizeName(assignment.person) === personKey
+      );
+      const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+      return new Set([
+        ...previousMonthlyMarkets.map((assignment) => assignment.market),
+        ...data.marketMarks.filter((mark) =>
+          mark.team === teamId && mark.date.startsWith(prefix) && normalizeName(mark.person) === personKey
+        ).map((mark) => mark.market)
+      ]);
+    }
+    function dailyMarketMarksForMonth(teamId, year, month) {
+      const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+      const plans = data.marketPlans.filter((plan) =>
+        plan.team === teamId && plan.year === year && plan.month === month
+      );
+      const plannedPeople = new Set(plans.map((plan) => normalizeName(plan.person)));
+      const result = data.marketMarks.filter((mark) =>
+        mark.team === teamId && mark.date.startsWith(prefix) &&
+        !plannedPeople.has(normalizeName(mark.person)) &&
+        !hasVacationMark(teamId, mark.person, mark.date)
+      );
+      plans.forEach((plan) => {
+        const markets = marketsForPersonMonth(teamId, year, month, plan.person);
+        for (let day = 1; day <= monthDays(year, month); day += 1) {
+          const date = dateKey(year, month, day);
+          markets.forEach((market) => {
+            if (!hasVacationMark(teamId, plan.person, date)) {
+              result.push({ team: teamId, date, person: plan.person, market });
+              return;
+            }
+            const cover = data.marketCovers.find((entry) =>
+              entry.team === teamId && entry.date === date && entry.market === market &&
+              normalizeName(entry.owner) === normalizeName(plan.person)
+            );
+            if (cover && !hasVacationMark(teamId, cover.person, date)) {
+              result.push({ team: teamId, date, person: cover.person, market, coveredFor: plan.person });
+            }
+          });
+        }
+      });
+      return result;
+    }
+    function marketCoverFor(teamId, date, owner, market) {
+      return data.marketCovers.find((cover) =>
+        cover.team === teamId && cover.date === date && cover.market === market &&
+        normalizeName(cover.owner) === normalizeName(owner)
+      );
+    }
+    function markedPeopleCount(teamId, year, month) {
+      return new Set(marksForMonth(teamId, year, month).map((mark) => normalizeName(mark.person))).size;
+    }
+    function crumb(label, page) {
+      return `<button type="button" class="crumb" data-page="${page}">${escapeHTML(label)}</button>`;
+    }
+    function header() {
+      return `<header class="topbar"><div class="brand"><div class="brand-mark" aria-hidden="true">E</div><div><div class="brand-name">essity · Credit Management</div><div class="brand-caption">Team and availability planning</div></div></div><nav class="view-switch" aria-label="Planning views"><button type="button" class="view-button" data-view="availability" aria-pressed="${state.view === "availability"}">Availability calendar</button><button type="button" class="view-button" data-view="markets" aria-pressed="${state.view === "markets"}">Market distribution</button></nav></header>`;
+    }
+    function teamCard(team) {
+      const people = new Set(data.marks.filter((mark) => mark.team === team.id).map((mark) => normalizeName(mark.person)));
+      return `<button type="button" class="team-card" data-team="${team.id}"><span class="team-card-main"><span class="team-icon" aria-hidden="true">${initials(team.name.slice(0, 1))}</span><span><span class="team-name">${escapeHTML(team.name)}</span><span class="team-caption">View 12 months</span></span></span><span class="team-count"><strong>${people.size}</strong>${people.size === 1 ? "employee" : "employees"}</span></button>`;
+    }
+    function teamCountryList(team) {
+      if (!team.countries?.length) return "";
+      return `<p class="team-country-list"><strong>Countries &amp; markets:</strong> ${team.countries.map(escapeHTML).join(", ")}</p>`;
+    }
+    function teamYearButton(team) {
+      return `<button type="button" class="team-year-button" data-team-year="${team.id}">Global annual view</button>`;
+    }
+    function teamPage() {
+      const management = teamById("management");
+      return `<section class="surface">
+        <div class="page-intro"><div class="page-intro-copy"><p class="eyebrow">Teams</p><h1>Credit Management Calendar</h1><p class="intro-copy">Choose a team to view the year, its months, and each employee's schedule.</p></div><div class="team-entry">${teamCard(management)}${teamYearButton(management)}</div></div>
+        <div class="team-grid">${teams.filter((team) => team.id !== management.id).map((team) => `<div class="team-entry">${teamCard(team)}${teamCountryList(team)}</div>`).join("")}</div>
+      </section>`;
+    }
+    function marketTeamCard(team) {
+      return `<button type="button" class="team-card" data-market-team="${team.id}"><span class="team-card-main"><span class="team-icon" aria-hidden="true">${initials(team.name.slice(0, 1))}</span><span><span class="team-name">${escapeHTML(team.name)}</span><span class="team-caption">Choose markets by employee</span></span></span><span class="team-count"><strong>${team.countries.length}</strong>markets</span></button>`;
+    }
+    function marketTeamsPage() {
+      const marketTeams = teams.filter((team) => team.countries?.length);
+      return `<section class="surface"><div class="page-intro"><div class="page-intro-copy"><p class="eyebrow">Market distribution</p><h1>Choose a team</h1><p class="intro-copy">Assign one or more markets to each employee on each calendar day. Each team uses its own market list.</p></div></div><div class="market-team-grid">${marketTeams.map(marketTeamCard).join("")}</div></section>`;
+    }
+    function marketDistributionTable(team, people, dailyMarks, marketsByPerson, marketSelections, marketHolidayView) {
+      const days = monthDays(state.year, state.month);
+      const weekGroups = [];
+      for (let day = 1; day <= days; day += 1) {
+        const week = isoWeek(state.year, state.month, day);
+        const key = `${week.year}-${week.number}`;
+        const previous = weekGroups[weekGroups.length - 1];
+        if (previous?.key === key) previous.days += 1;
+        else weekGroups.push({ ...week, key, days: 1 });
+      }
+      const weekHeaderCells = weekGroups.map((week) =>
+        `<th scope="colgroup" class="week-group" colspan="${week.days}" aria-label="Week ${week.number} of ${week.year}">W${String(week.number).padStart(2, "0")} · ${week.year}</th>`
+      ).join("");
+      const headerCells = Array.from({ length: days }, (_, index) => {
+        const day = index + 1;
+        const weekend = isWeekend(state.year, state.month, day);
+        const weekday = weekdays[weekdayIndex(state.year, state.month, day)];
+        const label = `${day} ${months[state.month]}${weekend ? " — Weekend" : ""}`;
+        return `<th scope="col" class="day-column${weekend ? " weekend" : ""}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}"><span>${day}</span><small>${weekday}</small><span class="holiday-dot" aria-hidden="true"></span></th>`;
+      }).join("");
+      const rows = people.map((person) => {
+        const personKey = normalizeName(person);
+        const cells = Array.from({ length: days }, (_, index) => {
+          const day = index + 1;
+          const date = dateKey(state.year, state.month, day);
+          const weekend = isWeekend(state.year, state.month, day);
+          const marketHolidayNames = marketHolidayView.byDailyPerson.get(personKey)?.get(date) || [];
+          const marketHoliday = marketHolidayNames.length > 0;
+          const currentMarks = dailyMarks.filter((mark) =>
+            mark.team === team.id && mark.date === date && normalizeName(mark.person) === personKey
+          );
+          const assignedMarkets = currentMarks.map((mark) => mark.market);
+          const onVacation = hasVacationMark(team.id, person, date);
+          if (onVacation) {
+            const ownerMarkets = [...(marketSelections.get(personKey) || [])];
+            const missingCover = ownerMarkets.some((market) => {
+              const cover = marketCoverFor(team.id, date, person, market);
+              return !cover || hasVacationMark(team.id, cover.person, date);
+            });
+            const label = `${person} is on vacation on ${day} ${months[state.month]} ${state.year}.`;
+            const coverControl = ownerMarkets.length
+              ? `<button type="button" class="market-cover-trigger${missingCover ? " missing" : ""}" data-action="choose-market-cover" data-person="${escapeHTML(person)}" data-date="${date}" aria-label="Assign market cover for ${escapeHTML(person)} on ${day} ${months[state.month]}" title="${missingCover ? "One or more markets need a cover" : "Edit market cover"}">${missingCover ? "!" : "✓"}</button>`
+              : "";
+            return `<td class="mark-cell vacation-market-cell${weekend ? " weekend" : ""}" title="${escapeHTML(label)}"><button type="button" class="market-day-display vacation" aria-label="${escapeHTML(label)}" disabled>V</button>${coverControl}</td>`;
+          }
+          const coveredOwners = [...new Set(currentMarks.filter((mark) => mark.coveredFor).map((mark) => mark.coveredFor))];
+          const assignmentLabel = assignedMarkets.length
+            ? `${assignedMarkets.join(", ")} assigned to ${person} on ${day} ${months[state.month]} ${state.year}${coveredOwners.length ? `, including temporary cover for ${coveredOwners.join(", ")}` : ""}.`
+            : `No market assigned to ${person} on ${day} ${months[state.month]} ${state.year}.`;
+          const label = `${assignmentLabel}${marketHoliday ? ` National public holiday: ${marketHolidayNames.join("; ")}.` : ""}`;
+          const orderedMarks = [...currentMarks].sort((a, b) => Number(Boolean(b.coveredFor)) - Number(Boolean(a.coveredFor)));
+          const renderMarketFlag = (mark) =>
+            `<span class="market-assignment-flag${mark.coveredFor ? " covered" : ""}" title="${escapeHTML(mark.coveredFor ? `${mark.market} — Temporary cover for ${mark.coveredFor}` : mark.market)}">${marketFlag(mark.market)}</span>`;
+          const hasCoveredOverflow = orderedMarks.slice(1).some((mark) => mark.coveredFor);
+          const visibleFlags = orderedMarks.length > 2
+            ? `${renderMarketFlag(orderedMarks[0])}<span class="market-day-more${hasCoveredOverflow ? " covered" : ""}" title="${hasCoveredOverflow ? "Includes temporary absence cover" : "More assigned markets"}">+${orderedMarks.length - 1}</span>`
+            : orderedMarks.length
+              ? orderedMarks.map(renderMarketFlag).join("")
+              : "—";
+          return `<td class="mark-cell${weekend ? " weekend" : ""}${marketHoliday ? " market-holiday" : ""}" title="${escapeHTML(label)}"><span class="market-day-display" aria-label="${escapeHTML(label)}">${visibleFlags}</span>${marketHoliday ? '<span class="market-holiday-indicator" aria-hidden="true">●</span>' : ""}</td>`;
+        }).join("");
+        const managedMarkets = team.countries.filter((market) => marketsByPerson.get(personKey)?.has(market));
+        const marketSummary = managedMarkets.length
+          ? `<div class="person-markets" aria-label="Markets managed this month: ${escapeHTML(managedMarkets.join(", "))}">${managedMarkets.map((market) => `<span class="person-market-chip" title="${escapeHTML(market)}">${marketFlag(market)} ${escapeHTML(market)}</span>`).join("")}</div>`
+          : `<span class="person-markets-empty">—</span>`;
+        return `<tr data-person-row="${escapeHTML(person)}"><th scope="row" class="person-column"><button type="button" class="employee-market-trigger" data-action="choose-employee-markets" data-person="${escapeHTML(person)}" aria-label="Choose markets for ${escapeHTML(person)} in ${months[state.month]} ${state.year}" title="Choose markets for ${months[state.month]}" ${storageUsable ? "" : "disabled"}>${escapeHTML(person)}</button></th><td class="markets-column">${marketSummary}</td>${cells}</tr>`;
+      }).join("");
+        return `<div class="table-wrap" role="region" aria-label="Daily market assignments for ${escapeHTML(team.name)} in ${months[state.month]} ${state.year}" tabindex="0"><table class="roster-table"><thead><tr class="week-header"><th scope="col" class="person-column">Week</th><th scope="col" class="markets-column" rowspan="2">Markets in management</th>${weekHeaderCells}</tr><tr class="day-header"><th scope="col" class="person-column">Employee</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    function marketDistributionPage() {
+      const team = teamById(state.team);
+      if (!team?.countries?.length) return marketTeamsPage();
+      const people = data.employees[team.id];
+      const dailyMarks = dailyMarketMarksForMonth(team.id, state.year, state.month);
+      const marketHolidayView = assignedMarketHolidayView(team.id, state.year, state.month);
+      const marketSelections = new Map(people.map((person) => [
+        normalizeName(person),
+        marketsForPersonMonth(team.id, state.year, state.month, person)
+      ]));
+      const marketsByPerson = new Map();
+      people.forEach((person) => {
+        const personKey = normalizeName(person);
+        marketsByPerson.set(personKey, new Set(marketSelections.get(personKey)));
+      });
+      dailyMarks.forEach((mark) => {
+        const key = normalizeName(mark.person);
+        if (!marketsByPerson.has(key)) marketsByPerson.set(key, new Set());
+        marketsByPerson.get(key).add(mark.market);
+      });
+      const unassignedMarkets = [];
+      people.forEach((owner) => {
+        const ownerMarkets = marketSelections.get(normalizeName(owner)) || new Set();
+        for (let day = 1; day <= monthDays(state.year, state.month); day += 1) {
+          const date = dateKey(state.year, state.month, day);
+          if (!hasVacationMark(team.id, owner, date)) continue;
+          ownerMarkets.forEach((market) => {
+            const cover = marketCoverFor(team.id, date, owner, market);
+            if (!cover || hasVacationMark(team.id, cover.person, date)) {
+              unassignedMarkets.push({ owner, market, date });
+            }
+          });
+        }
+      });
+      const coverageNote = unassignedMarkets.length
+        ? `<p class="market-legacy-note" role="alert">${unassignedMarkets.length} market ${unassignedMarkets.length === 1 ? "cover is" : "covers are"} still unassigned during vacation. Use the ! control in the vacation cell to choose an available colleague.</p>`
+        : "";
+      const employeeCount = new Set(dailyMarks.map((mark) => normalizeName(mark.person))).size;
+      const content = people.length
+        ? `<p class="market-help">Click an employee's name to choose their markets for the month. They are assigned automatically on non-vacation days. Use the ! control on a V day to choose a colleague to cover each market. The same market may be assigned to more than one employee.</p>${coverageNote}<p class="market-help">${dailyMarks.length} daily market ${dailyMarks.length === 1 ? "assignment" : "assignments"} this month across ${employeeCount} ${employeeCount === 1 ? "employee" : "employees"}.</p>${marketDistributionTable(team, people, dailyMarks, marketsByPerson, marketSelections, marketHolidayView)}`
+        : `<p class="empty-roster">Add employees in the Availability calendar before assigning markets.</p>`;
+      const marketLegend = people.length
+        ? `<div class="market-legend"><span class="market-code-chip" aria-hidden="true">🇵🇹</span>Assigned market <span class="market-code-chip market-cover-code-chip" aria-hidden="true">🇵🇹</span>Temporary absence cover <span class="market-code-chip" aria-hidden="true">V</span>Vacation; market assignment disabled <span class="market-code-chip" aria-hidden="true">!</span>Unassigned vacation cover <span class="market-holiday-legend-dot" aria-hidden="true">●</span>Holiday in the assigned market</div>`
+        : "";
+      return `<section class="surface"><div class="subhead"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="crumb" data-page="market-teams">Market distribution</button><span class="crumb-separator">/</span><span>${escapeHTML(team.name)}</span></nav><div class="subhead-row"><div><p class="eyebrow">${escapeHTML(team.name)} · Market distribution</p><h1>${months[state.month]} ${state.year}</h1><p class="intro-copy">Choose markets per employee for this month; vacation cover is assigned separately.</p></div>${monthControl()}</div></div>${content}${marketLegend}${marketHolidayTable(marketHolidayView)}${storageError ? `<p class="storage-warning" role="alert">${escapeHTML(storageError)}</p>` : ""}<div class="storage-note">Market assignments are saved in this browser and kept separate for this project.</div></section>`;
+    }
+    function yearControl() {
+      return `<div class="year-control" aria-label="Year"><button type="button" data-year="-1" aria-label="Previous year">‹</button><span class="year-value">${state.year}</span><button type="button" data-year="1" aria-label="Next year">›</button></div>`;
+    }
+    function monthsPage() {
+      const team = teamById(state.team);
+      const allPeople = data.employees[state.team];
+      return `<section class="surface">
+        <div class="subhead"><nav class="crumbs" aria-label="Breadcrumb">${crumb("Teams", "teams")}<span class="crumb-separator">/</span><span>${team.name}</span></nav><div class="subhead-row"><div><p class="eyebrow">Team ${team.name}</p><h1>Choose a month</h1></div>${yearControl()}</div></div>
+        <div class="month-grid">${months.map((month, index) => {
+          const count = markedPeopleCount(state.team, state.year, index);
+          return `<button type="button" class="month-card" data-month="${index}"><span class="month-name">${month}</span><span class="month-meta">${count} ${count === 1 ? "employee with marks" : "employees with marks"}</span></button>`;
+        }).join("")}</div>
+        <div class="month-roster"><strong>${allPeople.length} ${allPeople.length === 1 ? "employee registered" : "employees registered"} in this team</strong>${allPeople.length ? `<ul>${allPeople.map((name) => `<li>${escapeHTML(name)}</li>`).join("")}</ul>` : ""}</div>
+      </section>`;
+    }
+    function teamYearMonth(month, holidays, marksByDate, includeTeam, readOnly) {
+      const monthPrefix = `${state.year}-${String(month + 1).padStart(2, "0")}-`;
+      const markedDays = [...marksByDate.entries()].filter(([date]) => date.startsWith(monthPrefix));
+      const markedPeople = new Set(markedDays.flatMap(([, marks]) => marks.map((mark) => `${mark.team}:${normalizeName(mark.person)}`)));
+      const cells = Array.from({ length: weekdayIndex(state.year, month, 1) }, () =>
+        `<span class="team-year-day empty" aria-hidden="true"></span>`
+      );
+      for (let day = 1; day <= monthDays(state.year, month); day += 1) {
+        const date = dateKey(state.year, month, day);
+        const holiday = holidays.has(date);
+        const weekend = isWeekend(state.year, month, day);
+        const dayMarks = [...(marksByDate.get(date) || [])].sort((a, b) => a.person.localeCompare(b.person, "en"));
+        const classes = ["team-year-day", weekend ? "weekend" : "", holiday ? "holiday" : ""].filter(Boolean).join(" ");
+        const markNames = dayMarks.map((mark) => `${includeTeam ? `${teamById(mark.team)?.name} — ` : ""}${mark.person}: ${markTypes[mark.kind].name}`).join("; ");
+        const label = `${day} ${months[month]} ${state.year}${markNames ? ` — ${markNames}` : ""}${holiday ? ` — National public holiday: ${holidays.get(date)}` : ""}${weekend ? " — Weekend" : ""}`;
+        const marks = dayMarks.map((mark) => {
+          const teamCode = mark.team === "carla" ? "C-" : mark.team === "angela" ? "A-" : "";
+          const marker = `${includeTeam ? teamCode : ""}${initials(mark.person)}`;
+          const teamName = includeTeam ? `${teamById(mark.team)?.name} · ` : "";
+          return `<span class="team-year-mark ${mark.kind}" title="${escapeHTML(teamName + mark.person)} — ${escapeHTML(markTypes[mark.kind].name)}">${escapeHTML(marker)}</span>`;
+        }).join("");
+        cells.push(`<span class="${classes}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}"><span class="team-year-day-number">${day}</span>${marks ? `<span class="team-year-marks">${marks}</span>` : ""}</span>`);
+      }
+      const weekdaysMarkup = weekdays.map((day) => `<span class="team-year-weekday" title="${day}">${day[0]}</span>`).join("");
+      const markedDaysLabel = `${markedDays.length} marked ${markedDays.length === 1 ? "day" : "days"}`;
+      const employeesLabel = `${markedPeople.size} ${markedPeople.size === 1 ? "employee" : "employees"}`;
+      const tag = readOnly ? "div" : "button";
+      const attributes = readOnly
+        ? `class="team-year-month team-year-month-readonly" role="group" aria-label="${months[month]} ${state.year}: ${markedDaysLabel}, ${employeesLabel}"`
+        : `type="button" class="team-year-month" data-team-month="${month}" aria-label="Open ${months[month]} ${state.year} team calendar to view and edit"`;
+      return `<${tag} ${attributes}><span class="team-year-month-title">${months[month]}</span><span class="team-year-month-meta">${markedDaysLabel} · ${employeesLabel}</span><span class="team-year-weekdays">${weekdaysMarkup}</span><span class="team-year-days">${cells.join("")}</span></${tag}>`;
+    }
+    function teamYearPage() {
+      const team = teamById(state.team);
+      const isManagementOverview = state.team === "management";
+      const yearPrefix = `${state.year}-`;
+      const visibleTeams = isManagementOverview ? ["carla", "angela"] : [state.team];
+      const marksByDate = new Map();
+      data.marks.filter((mark) => visibleTeams.includes(mark.team) && mark.date.startsWith(yearPrefix)).forEach((mark) => {
+        if (!marksByDate.has(mark.date)) marksByDate.set(mark.date, []);
+        marksByDate.get(mark.date).push(mark);
+      });
+      const holidays = getHolidays(state.year);
+      const monthCards = months.map((_, month) => teamYearMonth(month, holidays, marksByDate, isManagementOverview, isManagementOverview)).join("");
+      const description = isManagementOverview
+        ? "Global annual view of marks across Carla's Team and Angela's Team. Open either team to manage its schedule."
+        : "Select a month to view and edit the team's schedule. Employee initials identify each marked day.";
+      const teamLegend = isManagementOverview ? "<span>C- identifies Carla's Team · A- identifies Angela's Team</span>" : "";
+      const browseButton = isManagementOverview
+        ? `<button type="button" class="crumb team-year-months-link" data-page="teams">Browse teams</button>`
+        : `<button type="button" class="crumb team-year-months-link" data-page="months">Browse the month list</button>`;
+      return `<section class="surface">
+        <div class="subhead"><nav class="crumbs" aria-label="Breadcrumb">${crumb("Teams", "teams")}<span class="crumb-separator">/</span><span>${escapeHTML(team.name)} · Annual calendar</span></nav><div class="subhead-row"><div><p class="eyebrow">${escapeHTML(team.name)} · Team overview</p><h1>${state.year}</h1><p class="intro-copy">${description}</p></div>${yearControl()}</div>${browseButton}</div>
+        <div class="team-year-grid">${monthCards}</div>
+        <div class="team-year-legend">${teamLegend}<span><i class="legend-chip">V</i>Vacation</span><span><i class="legend-chip home-chip">H</i>Home Office</span><span><i class="legend-chip compensation-chip">C</i>Compensation</span><span><i class="legend-chip holiday-chip">●</i>National public holiday</span></div>
+      </section>`;
+    }
+    function monthControl() {
+      return `<div class="month-control" aria-label="Month navigation"><button type="button" data-month-offset="-1" aria-label="Previous month">‹</button><span class="month-control-label">${months[state.month]} ${state.year}</span><button type="button" data-month-offset="1" aria-label="Next month">›</button></div>`;
+    }
+    function monthHolidayPanel(holidays) {
+      const monthHolidays = [...holidays.entries()].filter(([date]) => date.startsWith(`${state.year}-${String(state.month + 1).padStart(2, "0")}-`));
+      const summary = monthHolidays.length
+        ? monthHolidays.map(([date, name]) => `${Number(date.slice(-2))} — ${escapeHTML(name)}`).join(" · ")
+        : "There are no national public holidays this month.";
+      return `<div class="holiday-panel"><strong>National public holidays:</strong><span>${summary} <span class="muted">(municipal holidays are not included)</span></span></div>`;
+    }
+    function marketHolidayTable(view) {
+      const monthPrefix = `${state.year}-${String(state.month + 1).padStart(2, "0")}-`;
+      const entries = [];
+      view.byCountry.forEach((holidays, code) => {
+        const country = holidayCountryNames[code] || code;
+        const prefix = `${country}: `;
+        holidays.forEach((name, date) => {
+          if (!date.startsWith(monthPrefix)) return;
+          entries.push({ code, country, date, name: name.startsWith(prefix) ? name.slice(prefix.length) : name });
+        });
+      });
+      entries.sort((a, b) => a.country.localeCompare(b.country, "en") || a.date.localeCompare(b.date));
+      const rows = entries.map(({ code, country, date, name }) =>
+        `<tr><td><span aria-hidden="true">${flagEmoji(code)}</span> ${escapeHTML(country)}</td><td><time datetime="${date}">${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}</time></td><td>${escapeHTML(name)}</td></tr>`
+      ).join("");
+      const status = view.loading
+        ? `<p class="market-holiday-table-status">Loading national holiday data…</p>`
+        : view.errors.length
+          ? `<p class="market-holiday-table-status" role="alert">Could not load all holiday data: ${view.errors.map(escapeHTML).join("; ")} <button type="button" class="crumb" data-action="retry-market-holidays">Retry</button></p>`
+          : "";
+      const emptyMessage = view.countryNames.size
+        ? (view.errors.length ? "Holiday data is unavailable or incomplete." : "No national public holidays in assigned markets this month.")
+        : "No markets are assigned this month.";
+      const regionNote = view.marketNames.has("North America") || view.marketNames.has("Central America")
+        ? `<p class="market-holiday-table-status">North America uses United States holidays; Central America covers Belize, Costa Rica, El Salvador, Guatemala, Honduras, Nicaragua, and Panama.</p>`
+        : "";
+      const estimateNote = view.countryNames.has("AE")
+        ? `<p class="market-holiday-table-status">UAE Islamic-calendar dates are estimates and may change with official moon sightings.</p>`
+        : "";
+      const sourceNote = `<p class="market-holiday-table-status">National/public holidays only; regional and municipal holidays are excluded.</p>`;
+      const table = rows
+        ? `<table><thead><tr><th scope="col">Country</th><th scope="col">Date</th><th scope="col">Holiday</th></tr></thead><tbody>${rows}</tbody></table>`
+        : `<p>${view.loading ? "Waiting for holiday data…" : emptyMessage}</p>`;
+      return `<section class="market-holiday-table" aria-labelledby="market-holiday-table-title"><h2 id="market-holiday-table-title">National holidays by country</h2>${status}${table}${sourceNote}${regionNote}${estimateNote}</section>`;
+    }
+    function rosterTable(people, holidays) {
+      const days = monthDays(state.year, state.month);
+      const weekGroups = [];
+      for (let day = 1; day <= days; day += 1) {
+        const week = isoWeek(state.year, state.month, day);
+        const key = `${week.year}-${week.number}`;
+        const previous = weekGroups[weekGroups.length - 1];
+        if (previous?.key === key) previous.days += 1;
+        else weekGroups.push({ ...week, key, days: 1 });
+      }
+      const weekHeaderCells = weekGroups.map((week) =>
+        `<th scope="colgroup" class="week-group" colspan="${week.days}" aria-label="Week ${week.number} of ${week.year}">W${String(week.number).padStart(2, "0")} · ${week.year}</th>`
+      ).join("");
+      const headerCells = Array.from({ length: days }, (_, index) => {
+        const day = index + 1;
+        const holiday = holidays.get(dateKey(state.year, state.month, day));
+        const weekend = isWeekend(state.year, state.month, day);
+        const weekday = weekdays[weekdayIndex(state.year, state.month, day)];
+        const label = `${day} ${months[state.month]}${holiday ? ` — National public holiday: ${holiday}` : ""}${weekend ? " — Weekend" : ""}`;
+        return `<th scope="col" class="day-column${weekend ? " weekend" : ""}${holiday ? " holiday" : ""}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}"><span>${day}</span><small>${weekday}</small><span class="holiday-dot" aria-hidden="true">${holiday ? "●" : ""}</span></th>`;
+      }).join("");
+      const rows = people.map((person) => {
+        const personKey = normalizeName(person);
+        const selected = normalizeName(state.selectedEmployee) === personKey;
+        const row = Array.from({ length: days }, (_, index) => {
+          const day = index + 1;
+          const date = dateKey(state.year, state.month, day);
+          const weekend = isWeekend(state.year, state.month, day);
+          const holidayName = holidays.get(date);
+          const holiday = Boolean(holidayName);
+          const currentMark = data.marks.find((mark) => mark.team === state.team && mark.date === date && normalizeName(mark.person) === personKey);
+          const currentType = currentMark ? markTypes[currentMark.kind] : null;
+          const holidayLabel = holiday ? ` National public holiday: ${holidayName}.` : "";
+          const selectedLabel = (currentType
+            ? `${currentType.name} for ${person} on ${day} ${months[state.month]} ${state.year}. Click to change type or drag to an adjacent empty weekday.`
+            : `Choose a mark type for ${person} on ${day} ${months[state.month]} ${state.year}.`) + holidayLabel;
+          const unselectedLabel = `Choose ${person} in the employee field before changing this mark.`;
+          const label = selected ? selectedLabel : `${unselectedLabel}${holidayLabel}`;
+          const triggerClass = currentMark ? ` ${currentMark.kind}` : "";
+          const draggable = storageUsable && selected && Boolean(currentMark) && !weekend;
+          return `<td class="mark-cell${weekend ? " weekend" : ""}${holiday ? " holiday" : ""}"${holiday ? ` title="${escapeHTML(holidayName)}"` : ""}><button type="button" class="mark-trigger${triggerClass}" data-action="choose-mark" data-person="${escapeHTML(person)}" data-date="${date}" data-mark-kind="${currentMark?.kind || ""}" data-selected-label="${escapeHTML(selectedLabel)}" data-unselected-label="${escapeHTML(`${unselectedLabel}${holidayLabel}`)}" draggable="${draggable}" aria-label="${escapeHTML(label)}" aria-haspopup="dialog" aria-pressed="${Boolean(currentMark)}" title="${escapeHTML(label)}" ${storageUsable && selected ? "" : "disabled"}>${currentType?.code || "+"}</button></td>`;
+        }).join("");
+        return `<tr data-person-row="${escapeHTML(person)}"${selected ? ' class="selected-person"' : ""}><th scope="row" class="person-column"><div class="person-name"><span title="${escapeHTML(person)}">${escapeHTML(person)}</span><button type="button" class="remove-person" data-action="remove-person" data-person="${escapeHTML(person)}" aria-label="Remove ${escapeHTML(person)} and all of their marks" title="Remove employee">×</button></div></th>${row}</tr>`;
+      }).join("");
+      return `<div class="table-wrap" role="region" aria-label="Daily employee marks for ${months[state.month]}" tabindex="0"><table class="roster-table"><thead><tr class="week-header"><th scope="col" class="person-column">Week</th>${weekHeaderCells}</tr><tr class="day-header"><th scope="col" class="person-column">Employee</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    function annualSummary(people) {
+      if (!people.length) return "";
+      const totals = new Map(people.map((person) => [normalizeName(person), { person, vacation: 0, quotaUsed: 0, home: 0 }]));
+      const holidays = getHolidays(state.year);
+      data.marks.filter((mark) => mark.team === state.team && mark.date.startsWith(`${state.year}-`)).forEach((mark) => {
+        const total = totals.get(normalizeName(mark.person));
+        if (!total) return;
+        if (mark.kind === "vacation") {
+          total.vacation += 1;
+          if (countsTowardVacationQuota(mark.date, holidays)) total.quotaUsed += 1;
+        } else if (mark.kind === "home") {
+          total.home += 1;
+        }
+      });
+      const rows = [...totals.values()].map(({ person, vacation, quotaUsed, home }) => {
+        const quota = vacationQuotaFor(state.team, state.year, person);
+        const remaining = quota == null ? null : quota - quotaUsed;
+        const remainingMarkup = remaining == null
+          ? "—"
+          : remaining < 0
+            ? `<span class="vacation-quota-over">Over by ${Math.abs(remaining)}</span>`
+            : remaining;
+        return `<tr><td><button type="button" class="employee-year-link" data-action="show-year" data-person="${escapeHTML(person)}" aria-label="View ${escapeHTML(person)}'s annual plan">${escapeHTML(person)}</button></td><td>${vacation}</td><td><input class="vacation-quota-input" type="number" min="0" max="366" step="1" inputmode="numeric" data-action="set-vacation-quota" data-person="${escapeHTML(person)}" data-year="${state.year}" value="${quota == null ? "" : quota}" aria-label="Annual vacation quota for ${escapeHTML(person)} in ${state.year}" placeholder="Days" ${storageUsable ? "" : "disabled"}></td><td>${remainingMarkup}</td><td>${home}</td></tr>`;
+      }).join("");
+      return `<section class="annual-summary" aria-labelledby="annual-summary-title"><h2 id="annual-summary-title">Annual totals</h2><table><thead><tr><th scope="col">Employee</th><th scope="col">Vacation days marked</th><th scope="col">Annual quota</th><th scope="col">Remaining</th><th scope="col">Home Office days</th></tr></thead><tbody>${rows}</tbody></table><p class="vacation-quota-note">Quota is set per employee and year. It counts weekdays except Portuguese national public holidays; marking vacation beyond the quota is blocked. A blank quota is not enforced.</p></section>`;
+    }
+    function matchingEmployee(name, people) {
+      const key = normalizeName(name.trim().replace(/\s+/g, " "));
+      return key ? people.find((person) => normalizeName(person) === key) || "" : "";
+    }
+    function employeeControl(people) {
+      const value = state.employeeInput || state.selectedEmployee;
+      const selected = matchingEmployee(value, people);
+      const options = people.map((person) => `<option value="${escapeHTML(person)}"></option>`).join("");
+      const action = selected ? "Select to mark" : "Add";
+      return `<form class="employee-form" data-form="employee"><div class="employee-field"><label for="employee-name">Employee to mark or add</label><input id="employee-name" name="name" type="text" list="employee-options" maxlength="60" autocomplete="off" placeholder="Select or type a name" value="${escapeHTML(value)}" required ${storageUsable ? "" : "disabled"}><datalist id="employee-options">${options}</datalist></div><button class="primary-button" type="submit" data-employee-submit ${!storageUsable || !value.trim() ? "disabled" : ""}>${action}</button></form>`;
+    }
+    function employeeMiniMonth(person, month, holidays) {
+      const offset = weekdayIndex(state.year, month, 1);
+      const cells = Array.from({ length: offset }, () => `<span class="employee-mini-day empty" aria-hidden="true"></span>`);
+      for (let day = 1; day <= monthDays(state.year, month); day += 1) {
+        const date = dateKey(state.year, month, day);
+        const holiday = holidays.has(date);
+        const weekend = isWeekend(state.year, month, day);
+        const mark = data.marks.find((entry) =>
+          entry.team === state.team && entry.date === date && normalizeName(entry.person) === normalizeName(person)
+        );
+        const classes = [
+          "employee-mini-day",
+          weekend ? "weekend" : "",
+          holiday ? "holiday" : "",
+          mark ? `mark-${mark.kind}` : ""
+        ].filter(Boolean).join(" ");
+        const label = `${day} ${months[month]} ${state.year}${mark ? ` — ${markTypes[mark.kind].name}` : ""}${holiday ? ` — National public holiday: ${holidays.get(date)}` : ""}${weekend ? " — Weekend" : ""}`;
+        cells.push(`<span class="${classes}" title="${escapeHTML(label)}" aria-label="${escapeHTML(label)}">${day}</span>`);
+      }
+      const weekdaysMarkup = weekdays.map((day) => `<span class="employee-mini-weekday" title="${day}">${day[0]}</span>`).join("");
+      return `<button type="button" class="employee-mini-month" data-year-month="${month}" aria-label="Open ${months[month]} ${state.year} for ${escapeHTML(person)}"><span class="employee-mini-title">${months[month]}</span><span class="employee-mini-weekdays">${weekdaysMarkup}</span><span class="employee-mini-days">${cells.join("")}</span></button>`;
+    }
+    function employeeYearDialog() {
+      if (!state.annualPerson) return "";
+      const personKey = normalizeName(state.annualPerson);
+      const yearPrefix = `${state.year}-`;
+      const yearMarks = data.marks.filter((mark) =>
+        mark.team === state.team && normalizeName(mark.person) === personKey && mark.date.startsWith(yearPrefix)
+      );
+      const totals = Object.fromEntries(Object.keys(markTypes).map((kind) => [kind, 0]));
+      yearMarks.forEach((mark) => { totals[mark.kind] += 1; });
+      const holidays = getHolidays(state.year);
+      const monthCards = months.map((_, month) => employeeMiniMonth(state.annualPerson, month, holidays)).join("");
+      const count = (kind) => `${totals[kind]} ${totals[kind] === 1 ? "day" : "days"}`;
+      return `<div class="employee-year-backdrop" data-year-backdrop><section class="employee-year-dialog" role="dialog" aria-modal="true" aria-labelledby="employee-year-title"><div class="employee-year-header"><div><h2 id="employee-year-title">${escapeHTML(state.annualPerson)} · ${state.year}</h2><p class="employee-year-summary">Annual totals — Vacation: ${count("vacation")} · Home Office: ${count("home")} · Compensation: ${count("compensation")}</p></div><div class="employee-year-controls">${yearControl()}<button type="button" class="dialog-close" data-action="close-year" aria-label="Close annual plan">×</button></div></div><div class="employee-year-grid">${monthCards}</div><div class="employee-year-legend"><span><i class="legend-chip">V</i>Vacation</span><span><i class="legend-chip home-chip">H</i>Home Office</span><span><i class="legend-chip compensation-chip">C</i>Compensation</span><span><i class="employee-year-holiday"></i>National public holiday</span></div></section></div>`;
+    }
+    function closeEmployeeYear() {
+      const person = state.annualPerson;
+      state.annualPerson = "";
+      render();
+      [...app.querySelectorAll('[data-action="show-year"]')]
+        .find((button) => normalizeName(button.dataset.person) === normalizeName(person))
+        ?.focus();
+    }
+    function calendarPage() {
+      const team = teamById(state.team);
+      const people = data.employees[state.team];
+      const holidays = getHolidays(state.year);
+      return `<section class="surface">
+        <div class="subhead"><nav class="crumbs" aria-label="Breadcrumb">${crumb("Teams", "teams")}<span class="crumb-separator">/</span><button type="button" class="crumb" data-page="months">${team.name}</button><span class="crumb-separator">/</span><span>${months[state.month]} ${state.year}</span></nav><div class="calendar-subhead-row"><div><p class="eyebrow">${team.name} · Employee schedule</p><h1>${months[state.month]} ${state.year}</h1></div><div class="employee-actions">${employeeControl(people)}</div>${monthControl()}</div></div>
+        <div class="calendar-tools"><p class="instruction">Select an employee, then click a day in their row to add or change a mark. Drag a mark to an adjacent empty weekday to move it. No type is preselected.</p></div>
+        ${monthHolidayPanel(holidays)}
+        ${people.length ? rosterTable(people, holidays) : `<p class="empty-roster">Add employees to start marking Vacation, Home Office, and Compensation days.</p>`}
+        <div class="legend"><span class="legend-item"><i class="legend-chip">V</i>Vacation</span><span class="legend-item"><i class="legend-chip home-chip">H</i>Home Office</span><span class="legend-item"><i class="legend-chip compensation-chip">C</i>Compensation</span><span class="legend-item"><i class="legend-chip holiday-chip">●</i>National public holiday</span><span class="legend-item">All mark types are unavailable on weekends. National public holidays are allowed.</span></div>
+        ${annualSummary(people)}
+        ${storageError ? `<p class="storage-warning" role="alert">${escapeHTML(storageError)}</p>` : ""}
+        <div class="storage-note">Data is saved in this browser and kept separate for this project. Portuguese national public holidays are shown.</div>
+      </section>`;
+    }
+    function markDialog() {
+      const pending = state.pendingMark;
+      if (!pending) return "";
+      const [year, month, day] = pending.date.split("-").map(Number);
+      const weekend = isWeekend(year, month - 1, day);
+      const currentMark = data.marks.find((mark) =>
+        mark.team === state.team && mark.date === pending.date && normalizeName(mark.person) === normalizeName(pending.person)
+      );
+      const choices = Object.entries(markTypes).map(([kind, type]) => {
+        const unavailable = weekend;
+        const description = unavailable
+          ? "Marks cannot be made on weekends."
+          : type.description;
+        const className = kind === "home" ? " home-choice" : kind === "compensation" ? " compensation-choice" : "";
+        return `<button type="button" class="mark-choice${className}" data-action="select-mark" data-kind="${kind}" ${unavailable || !storageUsable ? "disabled" : ""}><span class="mark-choice-code">${type.code}</span><span><strong>${type.name}</strong><small>${description}</small></span></button>`;
+      }).join("");
+      const currentLabel = currentMark ? `<p class="current-mark">Current type: <strong>${markTypes[currentMark.kind].name}</strong></p>` : "";
+      const clearButton = currentMark
+        ? `<button type="button" class="clear-mark" data-action="clear-mark" ${storageUsable ? "" : "disabled"}>Remove mark</button>`
+        : `<span></span>`;
+      return `<div class="dialog-backdrop" data-dialog-backdrop><section class="mark-dialog" role="dialog" aria-modal="true" aria-labelledby="mark-dialog-title" aria-describedby="mark-dialog-description"><div class="mark-dialog-header"><div><p class="eyebrow">Employee: ${escapeHTML(pending.person)}</p><h2 id="mark-dialog-title">Choose a mark type</h2><p class="mark-dialog-description" id="mark-dialog-description">${day} ${months[month - 1]} ${year}</p></div><button type="button" class="dialog-close" data-action="close-mark" aria-label="Close">×</button></div>${currentLabel}<div class="mark-choices">${choices}</div><div class="mark-dialog-footer">${clearButton}<button type="button" class="crumb" data-action="close-mark">Cancel</button></div></section></div>`;
+    }
+    function marketDialog() {
+      const pending = state.pendingMarket;
+      if (!pending) return "";
+      const team = teamById(pending.team);
+      if (!team?.countries?.length) return "";
+      const currentMarkets = new Set(pending.markets);
+      const choices = team.countries.map((market) => {
+        const current = currentMarkets.has(market);
+        const description = current ? "Selected for this month · click to remove" : "Not selected · click to add";
+        return `<button type="button" class="mark-choice market-choice" data-action="select-market" data-market="${escapeHTML(market)}" aria-pressed="${current}" ${storageUsable ? "" : "disabled"}><span class="mark-choice-code" aria-hidden="true">${marketFlag(market)}</span><span><strong>${escapeHTML(market)}</strong><small>${description}</small></span></button>`;
+      }).join("");
+      const currentLabel = currentMarkets.size
+        ? `<p class="current-mark">Selected markets: <strong>${[...currentMarkets].map(escapeHTML).join(", ")}</strong></p>`
+        : `<p class="current-mark">No markets selected for this month.</p>`;
+      const clearButton = currentMarkets.size
+        ? `<button type="button" class="clear-mark" data-action="clear-market" ${storageUsable ? "" : "disabled"}>Clear selection</button>`
+        : `<span></span>`;
+      return `<div class="dialog-backdrop" data-market-backdrop><section class="mark-dialog" role="dialog" aria-modal="true" aria-labelledby="market-dialog-title" aria-describedby="market-dialog-description"><div class="mark-dialog-header"><div><p class="eyebrow">Employee: ${escapeHTML(pending.person)}</p><h2 id="market-dialog-title">Choose markets</h2><p class="mark-dialog-description" id="market-dialog-description">${months[pending.month]} ${pending.year}. Selected markets are assigned on every non-vacation day.</p></div><button type="button" class="dialog-close" data-action="close-market" aria-label="Close">×</button></div>${currentLabel}<div class="mark-choices market-choices">${choices}</div><div class="mark-dialog-footer">${clearButton}<button type="button" class="crumb" data-action="close-market">Cancel</button><button type="button" class="primary-button" data-action="save-market-selection" ${storageUsable ? "" : "disabled"}>Save markets</button></div></section></div>`;
+    }
+    function marketCoverDialog() {
+      const pending = state.pendingMarketCover;
+      if (!pending) return "";
+      const team = teamById(pending.team);
+      if (!team) return "";
+      const [year, month, day] = pending.date.split("-").map(Number);
+      const markets = [...marketsForPersonMonth(team.id, year, month - 1, pending.person)];
+      const availablePeople = data.employees[team.id].filter((person) =>
+        normalizeName(person) !== normalizeName(pending.person) && !hasVacationMark(team.id, person, pending.date)
+      );
+      const choices = markets.map((market) => {
+        const existing = marketCoverFor(team.id, pending.date, pending.person, market);
+        const selected = existing && availablePeople.some((person) => normalizeName(person) === normalizeName(existing.person))
+          ? existing.person
+          : "";
+        const options = availablePeople.map((person) =>
+          `<option value="${escapeHTML(person)}"${normalizeName(person) === normalizeName(selected) ? " selected" : ""}>${escapeHTML(person)}</option>`
+        ).join("");
+        return `<label class="market-cover-row"><span><span aria-hidden="true">${marketFlag(market)}</span> ${escapeHTML(market)}</span><select data-action="set-market-cover" data-market="${escapeHTML(market)}" ${storageUsable && availablePeople.length ? "" : "disabled"}><option value="">${availablePeople.length ? "Not assigned" : "No colleagues available"}</option>${options}</select></label>`;
+      }).join("");
+      const message = !markets.length
+        ? `<p class="current-mark">No markets are selected for ${escapeHTML(pending.person)} this month.</p>`
+        : availablePeople.length
+          ? `<p class="current-mark">Choose a colleague who is available on ${day} ${months[month - 1]} ${year} for each market.</p>`
+          : `<p class="current-mark" role="alert">No other colleague is available on this day. These markets remain unassigned.</p>`;
+      return `<div class="dialog-backdrop" data-market-cover-backdrop><section class="mark-dialog market-cover-dialog" role="dialog" aria-modal="true" aria-labelledby="market-cover-title" aria-describedby="market-cover-description"><div class="mark-dialog-header"><div><p class="eyebrow">Vacation cover · ${escapeHTML(pending.person)}</p><h2 id="market-cover-title">Assign market cover</h2><p class="mark-dialog-description" id="market-cover-description">${day} ${months[month - 1]} ${year}</p></div><button type="button" class="dialog-close" data-action="close-market-cover" aria-label="Close">×</button></div>${message}${choices ? `<div class="market-cover-choices">${choices}</div>` : ""}<div class="mark-dialog-footer"><span></span><button type="button" class="crumb" data-action="close-market-cover">Done</button></div></section></div>`;
+    }
+    function render() {
+      const page = state.view === "markets"
+        ? state.page === "market-teams" ? marketTeamsPage() : marketDistributionPage()
+        : state.page === "teams"
+          ? teamPage()
+          : state.page === "months"
+            ? monthsPage()
+            : state.page === "team-year"
+              ? teamYearPage()
+              : calendarPage();
+      app.classList.toggle("wide-calendar", state.page === "calendar" || state.page === "team-year" || state.page === "market-distribution");
+      app.innerHTML = `${header()}${page}${markDialog()}${marketDialog()}${marketCoverDialog()}${employeeYearDialog()}`;
+    }
+    function saveAndRender(nextData) {
+      if (saveData(nextData)) render();
+      else render();
+    }
+    function addEmployee(name) {
+      const cleaned = name.trim().replace(/\s+/g, " ").slice(0, 60);
+      if (!cleaned) return;
+      const people = data.employees[state.team];
+      const existing = matchingEmployee(cleaned, people);
+      if (existing) {
+        state.selectedEmployee = existing;
+        state.employeeInput = existing;
+        render();
+        app.querySelector("#employee-name")?.focus();
+        return;
+      }
+      const nextData = {
+        employees: { ...data.employees, [state.team]: [...people, cleaned].sort((a, b) => a.localeCompare(b, "pt-PT")) },
+        marks: data.marks
+      };
+      if (saveData(nextData)) {
+        state.selectedEmployee = cleaned;
+        state.employeeInput = cleaned;
+      }
+      render();
+    }
+    function setMark(kind) {
+      const pending = state.pendingMark;
+      if (!pending || !storageUsable || !Object.hasOwn(markTypes, kind) || normalizeName(state.selectedEmployee) !== normalizeName(pending.person)) return;
+      const { person, date } = pending;
+      const [year, month, day] = date.split("-").map(Number);
+      if (!validDate(date) || !data.employees[state.team].some((name) => normalizeName(name) === normalizeName(person))) return;
+      if (isWeekend(year, month - 1, day)) return;
+      const current = data.marks.find((mark) => mark.team === state.team && mark.date === date && normalizeName(mark.person) === normalizeName(person));
+      const quota = vacationQuotaFor(state.team, year, person);
+      if (kind === "vacation" && current?.kind !== "vacation" && quota != null &&
+          countsTowardVacationQuota(date, getHolidays(year)) && vacationQuotaUsed(state.team, year, person) >= quota) {
+        window.alert(`${person}'s annual vacation quota is ${quota} ${quota === 1 ? "day" : "days"}. The marked days have reached this limit.`);
+        return;
+      }
+      const remaining = data.marks.filter((mark) => !(mark.team === state.team && mark.date === date && normalizeName(mark.person) === normalizeName(person)));
+      const marks = current?.kind === kind ? data.marks : [...remaining, { team: state.team, person, date, kind }];
+      state.pendingMark = null;
+      invalidateMarketHolidayView(state.team, date);
+      saveAndRender({ employees: data.employees, marks });
+    }
+    function setVacationQuota(person, year, value, input) {
+      if (!storageUsable || !Number.isInteger(year) || year < 1 || year > 9999) return;
+      const team = teamById(state.team);
+      const canonicalPerson = data.employees[team?.id]?.find((name) => normalizeName(name) === normalizeName(person));
+      if (!team || !canonicalPerson) return;
+      const cleanedValue = value.trim();
+      const days = cleanedValue ? Number(cleanedValue) : null;
+      if (days !== null && (!Number.isInteger(days) || days < 0 || days > 366)) {
+        input.setCustomValidity("Enter a whole number of days between 0 and 366.");
+        input.reportValidity();
+        return;
+      }
+      input.setCustomValidity("");
+      const isSameQuota = (quota) =>
+        quota.team === team.id && quota.year === year &&
+        normalizeName(quota.person) === normalizeName(canonicalPerson);
+      const vacationQuotas = data.vacationQuotas.filter((quota) => !isSameQuota(quota));
+      if (days !== null) vacationQuotas.push({ team: team.id, year, person: canonicalPerson, days });
+      saveData({ ...data, vacationQuotas });
+      render();
+    }
+    function clearMark() {
+      const pending = state.pendingMark;
+      if (!pending || !storageUsable || normalizeName(state.selectedEmployee) !== normalizeName(pending.person)) return;
+      state.pendingMark = null;
+      const marks = data.marks.filter((mark) =>
+        !(mark.team === state.team && mark.date === pending.date && normalizeName(mark.person) === normalizeName(pending.person))
+      );
+      invalidateMarketHolidayView(state.team, pending.date);
+      saveAndRender({ employees: data.employees, marks });
+    }
+    function setMarket(market) {
+      const pending = state.pendingMarket;
+      const team = teamById(pending?.team);
+      if (!pending || !storageUsable || !team?.countries?.includes(market)) return;
+      pending.markets = pending.markets.includes(market)
+        ? pending.markets.filter((item) => item !== market)
+        : [...pending.markets, market];
+      render();
+      [...app.querySelectorAll('[data-action="select-market"]')]
+        .find((button) => button.dataset.market === market)?.focus();
+    }
+    function clearMarket() {
+      const pending = state.pendingMarket;
+      if (!pending || !storageUsable) return;
+      pending.markets = [];
+      render();
+    }
+    function saveMarketSelection() {
+      const pending = state.pendingMarket;
+      const team = teamById(pending?.team);
+      if (!pending || !storageUsable || !team?.countries?.length ||
+          !Number.isInteger(pending.year) || !Number.isInteger(pending.month)) return;
+      const person = data.employees[team.id].find((name) => normalizeName(name) === normalizeName(pending.person));
+      if (!person) return;
+      const selectedMarkets = [...new Set(pending.markets.filter((market) => team.countries.includes(market)))];
+      const isSamePlan = (item) =>
+        item.team === team.id && item.year === pending.year && item.month === pending.month &&
+        normalizeName(item.person) === normalizeName(person);
+      const marketAssignments = [
+        ...data.marketAssignments.filter((item) => !isSamePlan(item)),
+        ...selectedMarkets.map((market) => ({
+          team: team.id, year: pending.year, month: pending.month, person, market
+        }))
+      ];
+      const marketPlans = [
+        ...data.marketPlans.filter((item) => !isSamePlan(item)),
+        { team: team.id, year: pending.year, month: pending.month, person }
+      ];
+      const selectedSet = new Set(selectedMarkets);
+      const marketCovers = data.marketCovers.filter((cover) =>
+        !(cover.team === team.id && normalizeName(cover.owner) === normalizeName(person) &&
+          cover.date.startsWith(`${pending.year}-${String(pending.month + 1).padStart(2, "0")}-`) &&
+          !selectedSet.has(cover.market))
+      );
+      invalidateMarketHolidayView(team.id, `${pending.year}-${String(pending.month + 1).padStart(2, "0")}-01`);
+      if (saveData({ ...data, marketAssignments, marketPlans, marketCovers })) state.pendingMarket = null;
+      render();
+      if (!state.pendingMarket) {
+        [...app.querySelectorAll('[data-action="choose-employee-markets"]')]
+          .find((button) => normalizeName(button.dataset.person) === normalizeName(person))?.focus();
+      }
+    }
+    function setMarketCover(market, coverPerson) {
+      const pending = state.pendingMarketCover;
+      const team = teamById(pending?.team);
+      if (!pending || !storageUsable || !team?.countries?.includes(market) ||
+          !hasVacationMark(pending.team, pending.person, pending.date) ||
+          !marketsForPersonMonth(pending.team, Number(pending.date.slice(0, 4)), Number(pending.date.slice(5, 7)) - 1, pending.person).has(market)) return;
+      const availablePeople = team && data.employees[team.id].filter((person) =>
+        normalizeName(person) !== normalizeName(pending.person) && !hasVacationMark(team.id, person, pending.date)
+      );
+      if (coverPerson && !availablePeople?.some((person) => normalizeName(person) === normalizeName(coverPerson))) return;
+      const marketCovers = data.marketCovers.filter((cover) =>
+        !(cover.team === team.id && cover.date === pending.date && cover.market === market &&
+          normalizeName(cover.owner) === normalizeName(pending.person))
+      );
+      if (coverPerson) {
+        const person = availablePeople.find((name) => normalizeName(name) === normalizeName(coverPerson));
+        marketCovers.push({ team: team.id, date: pending.date, owner: pending.person, market, person });
+      }
+      const year = Number(pending.date.slice(0, 4));
+      const month = Number(pending.date.slice(5, 7)) - 1;
+      const personKey = normalizeName(pending.person);
+      const hasPlan = data.marketPlans.some((plan) =>
+        plan.team === team.id && plan.year === year && plan.month === month &&
+        normalizeName(plan.person) === personKey
+      );
+      const selectedMarkets = marketsForPersonMonth(team.id, year, month, pending.person);
+      const isSamePlan = (item) =>
+        item.team === team.id && item.year === year && item.month === month &&
+        normalizeName(item.person) === personKey;
+      const marketPlans = hasPlan
+        ? data.marketPlans
+        : [...data.marketPlans, { team: team.id, year, month, person: pending.person }];
+      const marketAssignments = hasPlan
+        ? data.marketAssignments
+        : [
+          ...data.marketAssignments.filter((assignment) => !isSamePlan(assignment)),
+          ...[...selectedMarkets].map((selectedMarket) => ({
+            team: team.id, year, month, person: pending.person, market: selectedMarket
+          }))
+        ];
+      invalidateMarketHolidayView(team.id, pending.date);
+      saveAndRender({ ...data, marketAssignments, marketPlans, marketCovers });
+      [...app.querySelectorAll('[data-action="set-market-cover"]')]
+        .find((select) => select.dataset.market === market)?.focus();
+    }
+    function closeMarkDialog() {
+      const pending = state.pendingMark;
+      state.pendingMark = null;
+      render();
+      if (!pending) return;
+      [...app.querySelectorAll('[data-action="choose-mark"]')]
+        .find((button) => button.dataset.date === pending.date && normalizeName(button.dataset.person) === normalizeName(pending.person))
+        ?.focus();
+    }
+    function closeMarketDialog() {
+      const pending = state.pendingMarket;
+      state.pendingMarket = null;
+      render();
+      if (!pending) return;
+      [...app.querySelectorAll('[data-action="choose-employee-markets"]')]
+        .find((button) => normalizeName(button.dataset.person) === normalizeName(pending.person))
+        ?.focus();
+    }
+    function closeMarketCoverDialog() {
+      const pending = state.pendingMarketCover;
+      state.pendingMarketCover = null;
+      render();
+      if (!pending) return;
+      [...app.querySelectorAll('[data-action="choose-market-cover"]')]
+        .find((button) => button.dataset.date === pending.date && normalizeName(button.dataset.person) === normalizeName(pending.person))
+        ?.focus();
+    }
+    function removeEmployee(person) {
+      if (!window.confirm(`Remove ${person} and all of their marks from this team?`)) return;
+      const personKey = normalizeName(person);
+      if (normalizeName(state.selectedEmployee) === personKey) {
+        state.selectedEmployee = "";
+        state.employeeInput = "";
+      }
+      marketHolidayViews.clear();
+      saveAndRender({
+        employees: { ...data.employees, [state.team]: data.employees[state.team].filter((name) => normalizeName(name) !== personKey) },
+        marks: data.marks.filter((mark) => !(mark.team === state.team && normalizeName(mark.person) === personKey)),
+        marketAssignments: data.marketAssignments.filter((assignment) => !(assignment.team === state.team && normalizeName(assignment.person) === personKey)),
+        marketPlans: data.marketPlans.filter((plan) => !(plan.team === state.team && normalizeName(plan.person) === personKey)),
+        marketCovers: data.marketCovers.filter((cover) =>
+          !(cover.team === state.team &&
+            (normalizeName(cover.owner) === personKey || normalizeName(cover.person) === personKey))
+        ),
+        marketMarks: data.marketMarks.filter((mark) => !(mark.team === state.team && normalizeName(mark.person) === personKey)),
+        vacationQuotas: data.vacationQuotas.filter((quota) =>
+          !(quota.team === state.team && normalizeName(quota.person) === personKey)
+        )
+      });
+    }
+    function vacationMoveExceedsQuota(target) {
+      const source = state.dragMark;
+      if (!source || source.kind !== "vacation" || !target?.dataset.date || !validDate(target.dataset.date)) return false;
+      const year = Number(source.date.slice(0, 4));
+      const quota = vacationQuotaFor(state.team, year, source.person);
+      if (quota == null) return false;
+      const sourceMark = data.marks.find((mark) =>
+        mark.team === state.team && mark.date === source.date &&
+        normalizeName(mark.person) === normalizeName(source.person)
+      );
+      if (!sourceMark || sourceMark.kind !== "vacation") return false;
+      const holidays = getHolidays(year);
+      const projectedUsage = vacationQuotaUsed(state.team, year, source.person) -
+        Number(countsTowardVacationQuota(source.date, holidays)) +
+        Number(countsTowardVacationQuota(target.dataset.date, holidays));
+      return projectedUsage > quota;
+    }
+    function canMoveMarkTo(target) {
+      const source = state.dragMark;
+      if (!source || !target || target.disabled || !storageUsable) return false;
+      if (normalizeName(state.selectedEmployee) !== normalizeName(source.person) ||
+          normalizeName(target.dataset.person) !== normalizeName(source.person)) return false;
+      const sourceMark = data.marks.find((mark) =>
+        mark.team === state.team && mark.date === source.date && normalizeName(mark.person) === normalizeName(source.person)
+      );
+      if (!sourceMark || sourceMark.kind !== source.kind || !validDate(target.dataset.date)) return false;
+      const [year, month, day] = target.dataset.date.split("-").map(Number);
+      if (isWeekend(year, month - 1, day)) return false;
+      if (data.marks.some((mark) =>
+        mark.team === state.team && mark.date === target.dataset.date && normalizeName(mark.person) === normalizeName(source.person)
+      )) return false;
+      if (sourceMark.kind === "vacation" && vacationMoveExceedsQuota(target)) return false;
+      const sourceTime = Date.parse(`${source.date}T00:00:00Z`);
+      const targetTime = Date.parse(`${target.dataset.date}T00:00:00Z`);
+      return Math.abs(targetTime - sourceTime) === 86400000;
+    }
+    app.addEventListener("click", (event) => {
+      if (event.target.matches("[data-year-backdrop]")) {
+        closeEmployeeYear();
+        return;
+      }
+      if (event.target.matches("[data-dialog-backdrop]")) {
+        closeMarkDialog();
+        return;
+      }
+      if (event.target.matches("[data-market-backdrop]")) {
+        closeMarketDialog();
+        return;
+      }
+      if (event.target.matches("[data-market-cover-backdrop]")) {
+        closeMarketCoverDialog();
+        return;
+      }
+      const button = event.target.closest("button");
+      if (!button) return;
+      if (button.dataset.view === "availability" || button.dataset.view === "markets") {
+        if (button.dataset.view === state.view) return;
+        const targetView = button.dataset.view;
+        const team = teamById(state.team);
+        const returningToTeamCalendar = state.view === "markets" && state.page === "market-distribution" && Boolean(team);
+        state.page = targetView === "markets"
+          ? team?.countries?.length ? "market-distribution" : "market-teams"
+          : returningToTeamCalendar ? "calendar" : "teams";
+        if ((targetView === "markets" && !team?.countries?.length) ||
+            (targetView === "availability" && !returningToTeamCalendar)) {
+          state.team = "";
+        }
+        state.view = targetView;
+        state.pendingMark = null;
+        state.pendingMarket = null;
+        state.pendingMarketCover = null;
+        state.annualPerson = "";
+        state.dragMark = null;
+        render();
+        return;
+      }
+      if (button.dataset.action === "choose-employee-markets") {
+        const team = teamById(state.team);
+        const person = data.employees[state.team]?.find((name) => normalizeName(name) === normalizeName(button.dataset.person));
+        if (state.view !== "markets" || !team?.countries?.length || !person) return;
+        state.pendingMarket = {
+          team: team.id,
+          person,
+          year: state.year,
+          month: state.month,
+          markets: [...marketsForPersonMonth(team.id, state.year, state.month, person)]
+        };
+        render();
+        app.querySelector('[data-action="select-market"]:not(:disabled)')?.focus();
+        return;
+      } else if (button.dataset.action === "choose-market-cover") {
+        const team = teamById(state.team);
+        const person = data.employees[state.team]?.find((name) => normalizeName(name) === normalizeName(button.dataset.person));
+        if (state.view !== "markets" || !team?.countries?.length || !person ||
+            !validDate(button.dataset.date) || !hasVacationMark(team.id, person, button.dataset.date) ||
+            !marketsForPersonMonth(team.id, state.year, state.month, person).size) return;
+        state.pendingMarketCover = { team: team.id, person, date: button.dataset.date };
+        render();
+        app.querySelector('[data-action="set-market-cover"]:not(:disabled)')?.focus();
+        return;
+      } else if (button.dataset.action === "select-market") {
+        setMarket(button.dataset.market);
+        return;
+      } else if (button.dataset.action === "clear-market") {
+        clearMarket();
+        return;
+      } else if (button.dataset.action === "close-market") {
+        closeMarketDialog();
+        return;
+      } else if (button.dataset.action === "save-market-selection") {
+        saveMarketSelection();
+        return;
+      } else if (button.dataset.action === "close-market-cover") {
+        closeMarketCoverDialog();
+        return;
+      } else if (button.dataset.action === "retry-market-holidays") {
+        marketHolidayViews.delete(`${state.team}:${state.year}:${state.month}`);
+        render();
+        return;
+      } else if (button.dataset.action === "choose-mark") {
+        if (normalizeName(state.selectedEmployee) !== normalizeName(button.dataset.person)) return;
+        state.pendingMark = { person: button.dataset.person, date: button.dataset.date };
+        render();
+        app.querySelector('[data-action="select-mark"]:not(:disabled)')?.focus();
+        return;
+      } else if (button.dataset.action === "select-mark") {
+        setMark(button.dataset.kind);
+        return;
+      } else if (button.dataset.action === "clear-mark") {
+        clearMark();
+        return;
+      } else if (button.dataset.action === "close-mark") {
+        closeMarkDialog();
+        return;
+      } else if (button.dataset.action === "show-year") {
+        state.annualPerson = button.dataset.person;
+        state.selectedEmployee = "";
+        state.employeeInput = "";
+        render();
+        app.querySelector('[data-action="close-year"]')?.focus();
+        return;
+      } else if (button.dataset.action === "close-year") {
+        closeEmployeeYear();
+        return;
+      } else if (button.dataset.yearMonth !== undefined) {
+        const month = Number(button.dataset.yearMonth);
+        const person = state.annualPerson;
+        if (!Number.isInteger(month) || month < 0 || month >= months.length || !person) return;
+        state.month = month;
+        state.annualPerson = "";
+        render();
+        const row = [...app.querySelectorAll("[data-person-row]")]
+          .find((item) => normalizeName(item.dataset.personRow) === normalizeName(person));
+        row?.scrollIntoView({ block: "center" });
+        [...app.querySelectorAll('[data-action="show-year"]')]
+          .find((item) => normalizeName(item.dataset.person) === normalizeName(person))
+          ?.focus({ preventScroll: true });
+        return;
+      } else if (button.dataset.team) {
+        state.team = button.dataset.team;
+        state.selectedEmployee = "";
+        state.employeeInput = "";
+        state.page = "months";
+      } else if (button.dataset.marketTeam) {
+        state.team = button.dataset.marketTeam;
+        state.page = "market-distribution";
+        state.pendingMarket = null;
+      } else if (button.dataset.page === "market-teams") {
+        state.team = "";
+        state.page = "market-teams";
+        state.pendingMarket = null;
+      } else if (button.dataset.teamYear) {
+        state.team = button.dataset.teamYear;
+        state.selectedEmployee = "";
+        state.employeeInput = "";
+        state.page = "team-year";
+      } else if (button.dataset.page === "teams") {
+        state.page = "teams";
+        state.team = "";
+        state.selectedEmployee = "";
+        state.employeeInput = "";
+      } else if (button.dataset.page === "months") {
+        state.page = "months";
+      } else if (button.dataset.teamMonth !== undefined) {
+        const month = Number(button.dataset.teamMonth);
+        if (!Number.isInteger(month) || month < 0 || month >= months.length) return;
+        state.month = month;
+        state.page = "calendar";
+        render();
+        window.scrollTo(0, 0);
+        return;
+      } else if (button.dataset.year) {
+        state.year += Number(button.dataset.year);
+      } else if (button.dataset.month !== undefined) {
+        state.month = Number(button.dataset.month);
+        state.page = "calendar";
+      } else if (button.dataset.monthOffset) {
+        const next = new Date(Date.UTC(state.year, state.month + Number(button.dataset.monthOffset), 1));
+        state.year = next.getUTCFullYear();
+        state.month = next.getUTCMonth();
+      } else if (button.dataset.action === "remove-person") {
+        removeEmployee(button.dataset.person);
+        return;
+      } else {
+        return;
+      }
+      render();
+    });
+    app.addEventListener("dragstart", (event) => {
+      const button = event.target.closest('[data-action="choose-mark"]');
+      if (!button?.draggable || !button.dataset.markKind ||
+          normalizeName(state.selectedEmployee) !== normalizeName(button.dataset.person)) {
+        event.preventDefault();
+        return;
+      }
+      state.dragMark = { person: button.dataset.person, date: button.dataset.date, kind: button.dataset.markKind };
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", button.dataset.date);
+      button.classList.add("dragging");
+    });
+    app.addEventListener("dragover", (event) => {
+      const target = event.target.closest('[data-action="choose-mark"]');
+      const previous = app.querySelector(".mark-trigger.drag-target");
+      if (previous && previous !== target) previous.classList.remove("drag-target");
+      if (!canMoveMarkTo(target)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      target.classList.add("drag-target");
+    });
+    app.addEventListener("dragleave", (event) => {
+      const target = event.target.closest(".mark-trigger");
+      if (target && !target.contains(event.relatedTarget)) target.classList.remove("drag-target");
+    });
+    app.addEventListener("drop", (event) => {
+      if (!state.dragMark) return;
+      event.preventDefault();
+      const target = event.target.closest('[data-action="choose-mark"]');
+      if (!canMoveMarkTo(target)) {
+        if (vacationMoveExceedsQuota(target)) {
+          const quota = vacationQuotaFor(state.team, Number(state.dragMark.date.slice(0, 4)), state.dragMark.person);
+          window.alert(`Moving this vacation would exceed the annual quota of ${quota} ${quota === 1 ? "day" : "days"}.`);
+        }
+        return;
+      }
+      const source = state.dragMark;
+      const sourceMark = data.marks.find((mark) =>
+        mark.team === state.team && mark.date === source.date && normalizeName(mark.person) === normalizeName(source.person)
+      );
+      if (!sourceMark) return;
+      const marks = data.marks.map((mark) => mark === sourceMark ? { ...mark, date: target.dataset.date } : mark);
+      state.dragMark = null;
+      saveAndRender({ employees: data.employees, marks });
+    });
+    app.addEventListener("dragend", (event) => {
+      event.target.closest(".mark-trigger")?.classList.remove("dragging", "drag-target");
+      app.querySelectorAll(".mark-trigger.drag-target").forEach((button) => button.classList.remove("drag-target"));
+      state.dragMark = null;
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (state.pendingMark) closeMarkDialog();
+      else if (state.pendingMarketCover) closeMarketCoverDialog();
+      else if (state.pendingMarket) closeMarketDialog();
+      else if (state.annualPerson) closeEmployeeYear();
+    });
+    app.addEventListener("change", (event) => {
+      const quotaInput = event.target.closest('[data-action="set-vacation-quota"]');
+      if (quotaInput) {
+        setVacationQuota(quotaInput.dataset.person, Number(quotaInput.dataset.year), quotaInput.value, quotaInput);
+        return;
+      }
+      const select = event.target.closest('[data-action="set-market-cover"]');
+      if (!select) return;
+      setMarketCover(select.dataset.market, select.value);
+    });
+    app.addEventListener("input", (event) => {
+      const input = event.target.closest("#employee-name");
+      if (!input) return;
+      state.employeeInput = input.value;
+      const selected = matchingEmployee(input.value, data.employees[state.team]);
+      const selectedChanged = normalizeName(state.selectedEmployee) !== normalizeName(selected);
+      state.selectedEmployee = selected;
+      const button = app.querySelector("[data-employee-submit]");
+      if (button) {
+        button.textContent = selected ? "Select to mark" : "Add";
+        button.disabled = !storageUsable || !input.value.trim();
+      }
+      if (selectedChanged) {
+        app.querySelectorAll("[data-person-row]").forEach((row) => {
+          const isSelected = normalizeName(row.dataset.personRow) === normalizeName(selected);
+          row.classList.toggle("selected-person", isSelected);
+          row.querySelectorAll('[data-action="choose-mark"]').forEach((markButton) => {
+            const [year, month, day] = markButton.dataset.date.split("-").map(Number);
+            const label = isSelected ? markButton.dataset.selectedLabel : markButton.dataset.unselectedLabel;
+            markButton.disabled = !storageUsable || !isSelected;
+            markButton.draggable = storageUsable && isSelected && Boolean(markButton.dataset.markKind) && !isWeekend(year, month - 1, day);
+            markButton.setAttribute("aria-label", label);
+            markButton.title = label;
+          });
+        });
+      }
+    });
+    app.addEventListener("submit", (event) => {
+      const form = event.target.closest('[data-form="employee"]');
+      if (!form) return;
+      event.preventDefault();
+      const input = form.elements.name;
+      addEmployee(input.value);
+    });
+    render();
+  </script>
+</body>
+</html>
