@@ -277,6 +277,8 @@
     .annual-summary tbody tr:last-child td { border-bottom: 0; }
     .storage-note { padding: 12px 30px; border-top: 1px solid var(--line); background: #f8f8f8; color: var(--muted); font-size: 11px; }
     .storage-warning { margin: 0 30px 18px; padding: 11px 13px; border: 1px solid #e3b8b8; border-radius: 7px; background: #fff0f0; color: #8c3030; font-size: 12px; }
+    .sync-banner { margin: 0 0 16px; padding: 10px 14px; border: 1px solid #cfe2ef; border-radius: 7px; background: #eef7fc; color: #195779; font-size: 12px; }
+    .sync-banner.error { border-color: #e3b8b8; background: #fff0f0; color: #8c3030; }
     @media (max-width: 800px) {
       .team-grid { grid-template-columns: 1fr; }
       .market-team-grid { grid-template-columns: 1fr; }
@@ -337,7 +339,14 @@
 </head>
 <body>
   <main class="shell" id="app" aria-live="polite"></main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
   <script>
+    const supabaseClient = window.supabase?.createClient
+      ? window.supabase.createClient(
+        "https://qihlsswommovtrtlgwcj.supabase.co",
+        "sb_publishable_9KJrg7RgKIZhxXWVvMC0Xg_fRP9aUxs"
+      )
+      : null;
     const teams = [
       { id: "management", name: "Management" },
       {
@@ -380,8 +389,15 @@
     const app = document.querySelector("#app");
     const state = { view: "availability", page: "teams", team: "", year: new Date().getFullYear(), month: new Date().getMonth(), pendingMark: null, pendingMarket: null, pendingMarketCover: null, dragMark: null, annualPerson: "", selectedEmployee: "", employeeInput: "" };
     let storageError = "";
-    let storageUsable = true;
+    let storageUsable = false;
+    let saveInProgress = false;
+    let dataRevision = 0;
+    let realtimeConnected = false;
+    let syncStatus = "Connecting to shared calendar…";
+    let syncStatusKind = "pending";
+    let hasCachedData = false;
     let data = loadData();
+    let confirmedData = data;
     const marketHolidayCache = new Map();
     const marketHolidayRequests = new Map();
     const marketHolidayViews = new Map();
@@ -398,11 +414,12 @@
       const parsed = new Date(Date.UTC(year, month - 1, day));
       return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
     }
-    function loadData() {
+    function loadData(source = undefined) {
       try {
-        const stored = localStorage.getItem(storageKey);
-        if (!stored) return emptyData();
-        const parsed = JSON.parse(stored);
+        const stored = source === undefined ? localStorage.getItem(storageKey) : null;
+        if (source === undefined && !stored) return emptyData();
+        const parsed = source === undefined ? JSON.parse(stored) : source;
+        if (source === undefined) hasCachedData = true;
         if (!parsed || typeof parsed !== "object" || !parsed.employees || !Array.isArray(parsed.marks)) {
           throw new Error("Invalid data format.");
         }
@@ -503,37 +520,196 @@
         return { employees, marks, marketAssignments, marketPlans, marketCovers, marketMarks, vacationQuotas };
       } catch (error) {
         console.error("Could not load Credit Management Calendar data.", error);
-        storageUsable = false;
-        storageError = "Saved data could not be read. The calendar is read-only to avoid overwriting it.";
+        if (source !== undefined) throw new Error("Shared calendar data is invalid.", { cause: error });
+        storageError = "The local cached data could not be read. Shared data will still load from the server.";
         return emptyData();
       }
     }
     function saveData(nextData) {
-      if (!storageUsable) return false;
+      if (!storageUsable || saveInProgress) return false;
+      const persistedData = {
+        ...nextData,
+        marketAssignments: nextData.marketAssignments ?? data.marketAssignments ?? [],
+        marketPlans: nextData.marketPlans ?? data.marketPlans ?? [],
+        marketCovers: nextData.marketCovers ?? data.marketCovers ?? [],
+        marketMarks: nextData.marketMarks ?? data.marketMarks ?? [],
+        vacationQuotas: nextData.vacationQuotas ?? data.vacationQuotas ?? []
+      };
+      data = persistedData;
+      saveInProgress = true;
+      storageUsable = false;
+      storageError = "";
+      syncStatus = "Saving changes to the shared calendar…";
+      syncStatusKind = "pending";
+      void persistData(persistedData, dataRevision);
+      return true;
+    }
+    function cacheData(snapshot) {
       try {
-        const persistedData = {
-          ...nextData,
-          marketAssignments: nextData.marketAssignments ?? data.marketAssignments ?? [],
-          marketPlans: nextData.marketPlans ?? data.marketPlans ?? [],
-          marketCovers: nextData.marketCovers ?? data.marketCovers ?? [],
-          marketMarks: nextData.marketMarks ?? data.marketMarks ?? [],
-          vacationQuotas: nextData.vacationQuotas ?? data.vacationQuotas ?? []
-        };
-        localStorage.setItem(storageKey, JSON.stringify(persistedData));
-        data = persistedData;
-        storageError = "";
-        return true;
+        localStorage.setItem(storageKey, JSON.stringify(snapshot));
       } catch (error) {
-        console.error("Could not save Credit Management Calendar data.", error);
-        storageUsable = false;
-        storageError = "Changes could not be saved in this browser. Check the browser's storage permissions.";
-        return false;
+        console.warn("Could not cache shared calendar data in this browser.", error);
       }
+    }
+    function applySharedRow(row) {
+      const revision = Number(row.revision);
+      if (!Number.isSafeInteger(revision) || revision <= dataRevision) return false;
+      data = loadData(row.data);
+      confirmedData = data;
+      dataRevision = revision;
+      cacheData(data);
+      return true;
+    }
+    async function fetchSharedRow() {
+      const { data: row, error } = await supabaseClient
+        .from("calendar_shared_state")
+        .select("data, revision")
+        .eq("id", "essity")
+        .maybeSingle();
+      if (error) throw error;
+      if (!row) throw new Error("Shared calendar table is missing. Apply the Supabase database migration.");
+      return row;
+    }
+    async function persistData(snapshot, expectedRevision) {
+      const { data: revision, error } = await supabaseClient.rpc("save_calendar_state", {
+        p_data: snapshot,
+        p_expected_revision: expectedRevision
+      });
+      if (error) {
+        console.error("Could not save Credit Management Calendar data.", error);
+        let reloadError = null;
+        try {
+          const latestRow = await fetchSharedRow();
+          dataRevision = -1;
+          applySharedRow(latestRow);
+        } catch (errorWhileReloading) {
+          reloadError = errorWhileReloading;
+          console.error("Could not reload shared calendar data after a save failure.", errorWhileReloading);
+        }
+        if (reloadError) data = confirmedData;
+        saveInProgress = false;
+        storageUsable = !reloadError;
+        syncStatus = reloadError
+          ? "Save failed and the shared calendar could not be reloaded. Refresh the page before trying again."
+          : error.code === "P0001"
+            ? "Another user saved changes first. The latest shared data has been loaded; review and try again."
+            : "Changes were not saved. The latest shared data has been loaded; try again.";
+        syncStatusKind = "error";
+        render();
+        return;
+      }
+      const savedRevision = Number(revision);
+      if (!Number.isSafeInteger(savedRevision)) {
+        console.error("Supabase returned an invalid calendar revision.", revision);
+        data = confirmedData;
+        saveInProgress = false;
+        storageUsable = false;
+        syncStatus = "The server returned an invalid revision. Refresh the page before making further changes.";
+        syncStatusKind = "error";
+        render();
+        return;
+      }
+      if (savedRevision >= dataRevision) {
+        dataRevision = savedRevision;
+        data = snapshot;
+        confirmedData = snapshot;
+        cacheData(data);
+      }
+      saveInProgress = false;
+      storageUsable = true;
+      syncStatus = realtimeConnected
+        ? "Changes saved. The shared calendar is live for everyone."
+        : "Changes saved to shared storage, but live updates are disconnected. Refresh to reconnect.";
+      syncStatusKind = realtimeConnected ? "success" : "error";
+      render();
+    }
+    async function initializeSharedCalendar() {
+      const cachedData = data;
+      const shouldMigrateCache = hasCachedData &&
+        JSON.stringify(cachedData) !== JSON.stringify(emptyData());
+      let migrateCache = false;
+      if (!supabaseClient) throw new Error("The Supabase client could not be loaded. Check the connection and refresh.");
+      let markSubscribed;
+      const subscriptionReady = new Promise((resolve) => { markSubscribed = resolve; });
+      const channel = supabaseClient
+        .channel("essity-shared-calendar")
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "calendar_shared_state",
+          filter: "id=eq.essity"
+        }, ({ new: row }) => {
+          try {
+            if (applySharedRow(row)) {
+              storageError = "";
+              storageUsable = !saveInProgress;
+              syncStatus = "A shared change was received.";
+              syncStatusKind = "success";
+              render();
+            }
+          } catch (error) {
+            console.error("Could not apply a shared calendar update.", error);
+            storageUsable = false;
+            syncStatus = "A shared update could not be read. Refresh the page before editing.";
+            syncStatusKind = "error";
+            render();
+          }
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            realtimeConnected = true;
+            markSubscribed();
+            syncStatus = "Shared calendar is live for everyone.";
+            syncStatusKind = "success";
+            render();
+          } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+            realtimeConnected = false;
+            markSubscribed();
+            console.error(`Shared calendar realtime connection status: ${status}.`);
+            syncStatus = "Live updates are disconnected. Refresh the page to reconnect.";
+            syncStatusKind = "error";
+            render();
+          }
+        });
+      await Promise.race([subscriptionReady, new Promise((resolve) => setTimeout(resolve, 8000))]);
+      try {
+        const row = await fetchSharedRow();
+        const remoteRevision = Number(row.revision);
+        if (!Number.isSafeInteger(remoteRevision) || remoteRevision < 0) throw new Error("The shared calendar revision is invalid.");
+        const remoteData = loadData(row.data);
+        if (remoteRevision >= dataRevision) {
+          data = remoteData;
+          confirmedData = remoteData;
+          dataRevision = remoteRevision;
+        }
+        migrateCache = dataRevision === 0 && shouldMigrateCache &&
+          JSON.stringify(data) === JSON.stringify(emptyData());
+        if (migrateCache) data = cachedData;
+        storageError = "";
+        storageUsable = true;
+        syncStatus = realtimeConnected
+          ? "Shared calendar is live for everyone."
+          : "Connected to shared storage; live updates are unavailable. Refresh to reconnect.";
+        syncStatusKind = realtimeConnected ? "success" : "error";
+        cacheData(data);
+        if (migrateCache) saveData(data);
+      } catch (error) {
+        console.error("Could not connect to the shared calendar.", error);
+        storageUsable = false;
+        syncStatus = error.message || "Could not connect to the shared calendar.";
+        syncStatusKind = "error";
+      }
+      render();
     }
     function escapeHTML(value) {
       return String(value).replace(/[&<>"']/g, (character) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
       })[character]);
+    }
+    function syncBanner() {
+      const message = storageError ? `${syncStatus} ${storageError}` : syncStatus;
+      const role = syncStatusKind === "error" ? "alert" : "status";
+      return `<div class="sync-banner${syncStatusKind === "error" ? " error" : ""}" role="${role}">${escapeHTML(message)}</div>`;
     }
     function teamById(id) { return teams.find((team) => team.id === id); }
     function initials(name) { return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase(); }
@@ -950,7 +1126,7 @@
       const marketLegend = people.length
         ? `<div class="market-legend"><span class="market-code-chip" aria-hidden="true">🇵🇹</span>Assigned market <span class="market-code-chip market-cover-code-chip" aria-hidden="true">🇵🇹</span>Temporary absence cover <span class="market-code-chip" aria-hidden="true">V</span>Vacation; market assignment disabled <span class="market-code-chip" aria-hidden="true">!</span>Unassigned vacation cover <span class="market-holiday-legend-dot" aria-hidden="true">●</span>Holiday in the assigned market</div>`
         : "";
-      return `<section class="surface"><div class="subhead"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="crumb" data-page="market-teams">Market distribution</button><span class="crumb-separator">/</span><span>${escapeHTML(team.name)}</span></nav><div class="subhead-row"><div><p class="eyebrow">${escapeHTML(team.name)} · Market distribution</p><h1>${months[state.month]} ${state.year}</h1><p class="intro-copy">Choose markets per employee for this month; vacation cover is assigned separately.</p></div>${monthControl()}</div></div>${content}${marketLegend}${marketHolidayTable(marketHolidayView)}${storageError ? `<p class="storage-warning" role="alert">${escapeHTML(storageError)}</p>` : ""}<div class="storage-note">Market assignments are saved in this browser and kept separate for this project.</div></section>`;
+      return `<section class="surface"><div class="subhead"><nav class="crumbs" aria-label="Breadcrumb"><button type="button" class="crumb" data-page="market-teams">Market distribution</button><span class="crumb-separator">/</span><span>${escapeHTML(team.name)}</span></nav><div class="subhead-row"><div><p class="eyebrow">${escapeHTML(team.name)} · Market distribution</p><h1>${months[state.month]} ${state.year}</h1><p class="intro-copy">Choose markets per employee for this month; vacation cover is assigned separately.</p></div>${monthControl()}</div></div>${content}${marketLegend}${marketHolidayTable(marketHolidayView)}<div class="storage-note">Market assignments are shared with everyone who opens this calendar.</div></section>`;
     }
     function yearControl() {
       return `<div class="year-control" aria-label="Year"><button type="button" data-year="-1" aria-label="Previous year">‹</button><span class="year-value">${state.year}</span><button type="button" data-year="1" aria-label="Next year">›</button></div>`;
@@ -1207,8 +1383,7 @@
         ${people.length ? rosterTable(people, holidays) : `<p class="empty-roster">Add employees to start marking Vacation, Home Office, and Compensation days.</p>`}
         <div class="legend"><span class="legend-item"><i class="legend-chip">V</i>Vacation</span><span class="legend-item"><i class="legend-chip home-chip">H</i>Home Office</span><span class="legend-item"><i class="legend-chip compensation-chip">C</i>Compensation</span><span class="legend-item"><i class="legend-chip holiday-chip">●</i>National public holiday</span><span class="legend-item">All mark types are unavailable on weekends. National public holidays are allowed.</span></div>
         ${annualSummary(people)}
-        ${storageError ? `<p class="storage-warning" role="alert">${escapeHTML(storageError)}</p>` : ""}
-        <div class="storage-note">Data is saved in this browser and kept separate for this project. Portuguese national public holidays are shown.</div>
+        <div class="storage-note">Data is shared with everyone who opens this calendar. Portuguese national public holidays are shown.</div>
       </section>`;
     }
     function markDialog() {
@@ -1290,7 +1465,7 @@
               ? teamYearPage()
               : calendarPage();
       app.classList.toggle("wide-calendar", state.page === "calendar" || state.page === "team-year" || state.page === "market-distribution");
-      app.innerHTML = `${header()}${page}${markDialog()}${marketDialog()}${marketCoverDialog()}${employeeYearDialog()}`;
+      app.innerHTML = `${header()}${syncBanner()}${page}${markDialog()}${marketDialog()}${marketCoverDialog()}${employeeYearDialog()}`;
     }
     function saveAndRender(nextData) {
       if (saveData(nextData)) render();
@@ -1826,6 +2001,13 @@
       addEmployee(input.value);
     });
     render();
+    initializeSharedCalendar().catch((error) => {
+      console.error("Could not initialize the shared calendar.", error);
+      storageUsable = false;
+      syncStatus = error.message || "Could not initialize the shared calendar.";
+      syncStatusKind = "error";
+      render();
+    });
   </script>
 </body>
 </html>
